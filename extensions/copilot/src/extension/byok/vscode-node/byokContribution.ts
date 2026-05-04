@@ -5,7 +5,6 @@
 import { LanguageModelChatInformation, LanguageModelChatProvider, lm } from 'vscode';
 import { IVSCodeExtensionContext } from '../../../platform/extContext/common/extensionContext';
 import { ILogService } from '../../../platform/log/common/logService';
-import { IFetcherService } from '../../../platform/networking/common/fetcherService';
 import { Disposable, DisposableStore } from '../../../util/vs/base/common/lifecycle';
 import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
 import { BYOKKnownModels } from '../../byok/common/byokProvider';
@@ -28,7 +27,6 @@ export class BYOKContrib extends Disposable implements IExtensionContribution {
 	private _byokProvidersRegistered = false;
 
 	constructor(
-		@IFetcherService private readonly _fetcherService: IFetcherService,
 		@ILogService private readonly _logService: ILogService,
 		@IVSCodeExtensionContext extensionContext: IVSCodeExtensionContext,
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
@@ -41,8 +39,7 @@ export class BYOKContrib extends Disposable implements IExtensionContribution {
 	private async _registerBYOKProviders(instantiationService: IInstantiationService) {
 		if (!this._byokProvidersRegistered) {
 			this._byokProvidersRegistered = true;
-			// Update known models list from CDN so all providers have the same list
-			const knownModels = await this.fetchKnownModelList(this._fetcherService);
+			const knownModels = this.getKnownModelList();
 			if (this._store.isDisposed) {
 				return;
 			}
@@ -60,23 +57,9 @@ export class BYOKContrib extends Disposable implements IExtensionContribution {
 			}
 		}
 	}
-	private async fetchKnownModelList(fetcherService: IFetcherService): Promise<Record<string, BYOKKnownModels>> {
-		try {
-			const data = await (await fetcherService.fetch('https://main.vscode-cdn.net/extensions/copilotChat.json', { method: 'GET', callSite: 'byok-known-models' })).json();
-			// Use this for testing with changes from a local file. Don't check in
-			// const data = JSON.parse((await this._fileSystemService.readFile(URI.file('/Users/roblou/code/vscode-engineering/chat/copilotChat.json'))).toString());
-			let knownModels: Record<string, BYOKKnownModels>;
-			if (data.version !== 1) {
-				this._logService.warn('BYOK: Copilot Chat known models list is not in the expected format. Defaulting to empty list.');
-				knownModels = {};
-			} else {
-				knownModels = data.modelInfo;
-			}
-			this._logService.info('BYOK: Copilot Chat known models list fetched successfully.');
-			return knownModels;
-		} catch (error) {
-			this._logService.warn(`BYOK: Failed to fetch known models list. Defaulting to empty list. Error: ${error}`);
-			return {};
-		}
+
+	private getKnownModelList(): Record<string, BYOKKnownModels> {
+		this._logService.info('BYOK: Using bundled empty known models list. Provider models can still be configured by the user.');
+		return {};
 	}
 }
