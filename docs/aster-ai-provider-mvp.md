@@ -43,11 +43,11 @@ Included:
 - Configure Open VSX as the default extension gallery.
 - Stop auto-enabling `GitHub.copilot-chat` from product metadata.
 - Apply first-pass Aster product identity metadata in `product.json`.
+- Add an off-by-default Aster inline completion provider backed by configured BYOK language models through the VS Code Language Model API.
 
 Not included yet:
 
 - Full Copilot Chat rebrand across commands, views, localization, telemetry event names, and settings.
-- Inline completions through provider-neutral models.
 - Full agent/tool-call conformance tests against mock OpenAI-compatible providers.
 - Replacement of all Microsoft-hosted service URLs and bundled Microsoft extension metadata.
 - Final trademark, icon, installer, signing, and release packaging work.

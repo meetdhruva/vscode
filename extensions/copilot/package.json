@@ -3130,6 +3130,32 @@
 						"default": "",
 						"markdownDescription": "The currently selected completion model ID. To select from a list of available models, use the __\"Change Completions Model\"__ command or open the model picker (from the Aster AI menu in the VS Code title bar, select __\"Configure Code Completions\"__ then __\"Change Completions Model\"__. The value must be a valid model ID. An empty value indicates that the default model will be used."
 					},
+					"github.copilot.aster.inlineCompletions.enabled": {
+						"type": "boolean",
+						"default": false,
+						"markdownDescription": "Enable Aster inline completions backed by your configured BYOK language model provider. This provider is independent from GitHub Copilot hosted completions."
+					},
+					"github.copilot.aster.inlineCompletions.vendor": {
+						"type": "string",
+						"default": "",
+						"enum": [
+							"",
+							"customoai",
+							"openai",
+							"openrouter",
+							"ollama",
+							"anthropic",
+							"gemini",
+							"xai",
+							"azure"
+						],
+						"markdownDescription": "BYOK language model vendor to use for Aster inline completions. Leave empty to use the first available non-Copilot BYOK model."
+					},
+					"github.copilot.aster.inlineCompletions.modelId": {
+						"type": "string",
+						"default": "",
+						"markdownDescription": "Optional BYOK model ID for Aster inline completions. Leave empty to use the first available model from the configured vendor."
+					},
 					"github.copilot.chat.claudeAgent.enabled": {
 						"type": "boolean",
 						"default": true,
