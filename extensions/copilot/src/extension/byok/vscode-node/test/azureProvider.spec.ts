@@ -8,7 +8,7 @@ import { BlockedExtensionService, IBlockedExtensionService } from '../../../../p
 import { DisposableStore } from '../../../../util/vs/base/common/lifecycle';
 import { SyncDescriptor } from '../../../../util/vs/platform/instantiation/common/descriptors';
 import { createExtensionUnitTestingServices } from '../../../test/node/services';
-import { resolveAzureUrl } from '../azureProvider';
+import { assertAzureAuthenticationConfigured, AzureBYOKModelProvider, azureMicrosoftAuthentication, isAzureMicrosoftAuthenticationEnabled, resolveAzureUrl } from '../azureProvider';
 
 describe('AzureBYOKModelProvider', () => {
 	const disposables = new DisposableStore();
@@ -68,4 +68,53 @@ describe('AzureBYOKModelProvider', () => {
 		});
 	});
 
+	describe('authentication mode', () => {
+		it('keeps Microsoft authentication disabled unless explicitly enabled', () => {
+			expect(isAzureMicrosoftAuthenticationEnabled(undefined)).toBe(false);
+			expect(isAzureMicrosoftAuthenticationEnabled({ useMicrosoftAuthentication: false })).toBe(false);
+			expect(isAzureMicrosoftAuthenticationEnabled({})).toBe(false);
+			expect(isAzureMicrosoftAuthenticationEnabled({ useMicrosoftAuthentication: true })).toBe(true);
+		});
+
+		it('fails closed when neither API key nor explicit Microsoft authentication is configured', () => {
+			expect(() => assertAzureAuthenticationConfigured(undefined)).toThrow('Azure BYOK requires an API key by default');
+			expect(() => assertAzureAuthenticationConfigured({})).toThrow('Azure BYOK requires an API key by default');
+		});
+
+		it('allows requests with an API key or explicit Microsoft authentication opt-in', () => {
+			expect(() => assertAzureAuthenticationConfigured({ apiKey: 'azure-key' })).not.toThrow();
+			expect(() => assertAzureAuthenticationConfigured({ useMicrosoftAuthentication: true })).not.toThrow();
+		});
+
+		it('does not request Microsoft authentication when API key and explicit opt-in are missing', async () => {
+			const getSession = vi.spyOn(azureMicrosoftAuthentication, 'getSession');
+
+			await expect(AzureBYOKModelProvider.prototype.provideLanguageModelChatResponse.call(
+				{},
+				createAzureModel({}),
+				[],
+				{} as any,
+				{ report: vi.fn() } as any,
+				{} as any,
+			)).rejects.toThrow('Azure BYOK requires an API key by default');
+
+			expect(getSession).not.toHaveBeenCalled();
+		});
+	});
+
 });
+
+function createAzureModel(configuration: Record<string, unknown>) {
+	return {
+		id: 'gpt-4-deployment',
+		name: 'Azure GPT-4',
+		vendor: 'Azure',
+		family: 'gpt-4',
+		version: '1',
+		maxInputTokens: 128000,
+		maxOutputTokens: 16000,
+		url: 'https://my-resource.openai.azure.com',
+		configuration,
+		capabilities: {},
+	};
+}
