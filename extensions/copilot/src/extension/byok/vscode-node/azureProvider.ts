@@ -18,6 +18,10 @@ import { OpenAICompatibleLanguageModelChatInformation } from './abstractLanguage
 import { IBYOKStorageService } from './byokStorageService';
 import { AbstractCustomOAIBYOKModelProvider, CustomOAIModelProviderConfig, hasExplicitApiPath } from './customOAIProvider';
 
+export interface AzureModelProviderConfig extends CustomOAIModelProviderConfig {
+	readonly useMicrosoftAuthentication?: boolean;
+}
+
 export function resolveAzureUrl(modelId: string, url: string): string {
 	// The fully resolved url was already passed in
 	if (hasExplicitApiPath(url)) {
@@ -44,6 +48,31 @@ export function resolveAzureUrl(modelId: string, url: string): string {
 		throw new Error(`Unrecognized Azure deployment URL: ${url}`);
 	}
 }
+
+export function isAzureMicrosoftAuthenticationEnabled(configuration: AzureModelProviderConfig | undefined): boolean {
+	return configuration?.useMicrosoftAuthentication === true;
+}
+
+export function assertAzureAuthenticationConfigured(configuration: AzureModelProviderConfig | undefined): void {
+	if (configuration?.apiKey || isAzureMicrosoftAuthenticationEnabled(configuration)) {
+		return;
+	}
+
+	throw new Error('Azure BYOK requires an API key by default. To use Microsoft authentication, explicitly enable it in the Azure provider configuration.');
+}
+
+export const azureMicrosoftAuthentication = {
+	getSession(): Thenable<vscode.AuthenticationSession> {
+		return vscode.authentication.getSession(
+			AzureAuthMode.MICROSOFT_AUTH_PROVIDER,
+			[AzureAuthMode.COGNITIVE_SERVICES_SCOPE],
+			{
+				createIfNone: true,
+				silent: false
+			}
+		);
+	}
+};
 
 export class AzureBYOKModelProvider extends AbstractCustomOAIBYOKModelProvider {
 
@@ -83,7 +112,7 @@ export class AzureBYOKModelProvider extends AbstractCustomOAIBYOKModelProvider {
 	}
 
 	override async provideLanguageModelChatResponse(
-		model: OpenAICompatibleLanguageModelChatInformation<CustomOAIModelProviderConfig>,
+		model: OpenAICompatibleLanguageModelChatInformation<AzureModelProviderConfig>,
 		messages: Array<LanguageModelChatMessage | LanguageModelChatMessage2>,
 		options: ProvideLanguageModelChatResponseOptions,
 		progress: Progress<LanguageModelResponsePart2>,
@@ -93,14 +122,9 @@ export class AzureBYOKModelProvider extends AbstractCustomOAIBYOKModelProvider {
 			return super.provideLanguageModelChatResponse(model, messages, options, progress, token);
 		}
 
-		const session: vscode.AuthenticationSession = await vscode.authentication.getSession(
-			AzureAuthMode.MICROSOFT_AUTH_PROVIDER,
-			[AzureAuthMode.COGNITIVE_SERVICES_SCOPE],
-			{
-				createIfNone: true,
-				silent: false
-			}
-		);
+		assertAzureAuthenticationConfigured(model.configuration);
+
+		const session: vscode.AuthenticationSession = await azureMicrosoftAuthentication.getSession();
 
 		const url = this.resolveUrl(model.id, model.url);
 		const modelConfiguration = model.configuration?.models?.find(m => m.id === model.id);
