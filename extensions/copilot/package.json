@@ -1,7 +1,7 @@
 {
-	"name": "copilot-chat",
-	"displayName": "GitHub Copilot Chat",
-	"description": "AI chat features powered by Copilot",
+	"name": "ai-chat",
+	"displayName": "Aster AI",
+	"description": "Provider-neutral AI chat and coding features for Aster",
 	"version": "0.47.0",
 	"build": "1",
 	"internalAIKey": "1058ec22-3c95-4951-8443-f26c1f325911",
@@ -9,19 +9,17 @@
 	"internalLargeStorageAriaKey": "ec712b3202c5462fb6877acae7f1f9d7-c19ad55e-3e3c-4f99-984b-827f6d95bd9e-6917",
 	"ariaKey": "0c6ae279ed8443289764825290e4f9e2-1a736e7c-1324-4338-be46-fc2a58ae4d14-7255",
 	"buildType": "dev",
-	"publisher": "GitHub",
-	"homepage": "https://github.com/features/copilot?editor=vscode",
+	"publisher": "aster",
+	"homepage": "https://github.com/meetdhruva/vscode",
 	"license": "SEE LICENSE IN LICENSE.txt",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/microsoft/vscode-copilot-chat"
+		"url": "https://github.com/meetdhruva/vscode"
 	},
 	"bugs": {
-		"url": "https://github.com/microsoft/vscode/issues"
+		"url": "https://github.com/meetdhruva/vscode/issues"
 	},
-	"qna": "https://github.com/github-community/community/discussions/categories/copilot",
-	"icon": "assets/copilot.png",
-	"pricing": "Trial",
+	"qna": "https://github.com/meetdhruva/vscode/issues",
 	"engines": {
 		"vscode": "^1.119.0",
 		"npm": ">=9.0.0",
@@ -55,28 +53,6 @@
 		"java",
 		"kotlin",
 		"co-pilot"
-	],
-	"badges": [
-		{
-			"url": "https://img.shields.io/badge/GitHub%20Copilot-Subscription%20Required-orange",
-			"href": "https://github.com/github-copilot/signup?editor=vscode",
-			"description": "%github.copilot.badge.signUp%"
-		},
-		{
-			"url": "https://img.shields.io/github/stars/github/copilot-docs?style=social",
-			"href": "https://github.com/github/copilot-docs",
-			"description": "%github.copilot.badge.star%"
-		},
-		{
-			"url": "https://img.shields.io/youtube/channel/views/UC7c3Kb6jYCRj4JOHHZTxKsQ?style=social",
-			"href": "https://www.youtube.com/@GitHub/search?query=copilot",
-			"description": "%github.copilot.badge.youtube%"
-		},
-		{
-			"url": "https://img.shields.io/twitter/follow/github?style=social",
-			"href": "https://twitter.com/github",
-			"description": "%github.copilot.badge.twitter%"
-		}
 	],
 	"activationEvents": [
 		"onStartupFinished",
@@ -1170,7 +1146,7 @@
 				"toolReferenceName": "memory",
 				"userDescription": "Manage persistent memory across conversations",
 				"when": "config.github.copilot.chat.tools.memory.enabled",
-				"modelDescription": "Manage a persistent memory system with three scopes for storing notes and information across conversations.\n\nMemory is organized under /memories/ with three tiers:\n- `/memories/` — User memory: persistent notes that survive across all workspaces and conversations. Store preferences, patterns, and general insights here.\n- `/memories/session/` — Session memory: notes scoped to the current conversation. Store task-specific context and in-progress notes here. Cleared after the conversation ends.\n- `/memories/repo/` — Repository memory: repository-scoped facts stored via Copilot. Only the `create` command is supported for this path.\n\nIMPORTANT: Before creating new memory files, first view the /memories/ directory to understand what already exists. This helps avoid duplicates and maintain organized notes.\n\nCommands:\n- `view`: View contents of a file or list directory contents. Can be used on files or directories (e.g., \"/memories/\" to see all top-level items).\n- `create`: Create a new file at the specified path with the given content. Fails if the file already exists.\n- `str_replace`: Replace an exact string in a file with a new string. The old_str must appear exactly once in the file.\n- `insert`: Insert text at a specific line number in a file. Line 0 inserts at the beginning.\n- `delete`: Delete a file or directory (and all its contents).\n- `rename`: Rename or move a file or directory from path to new_path. Cannot rename across scopes.",
+				"modelDescription": "Manage a persistent memory system with three scopes for storing notes and information across conversations.\n\nMemory is organized under /memories/ with three tiers:\n- `/memories/` — User memory: persistent notes that survive across all workspaces and conversations. Store preferences, patterns, and general insights here.\n- `/memories/session/` — Session memory: notes scoped to the current conversation. Store task-specific context and in-progress notes here. Cleared after the conversation ends.\n- `/memories/repo/` — Repository memory: repository-scoped facts stored via Aster AI. Only the `create` command is supported for this path.\n\nIMPORTANT: Before creating new memory files, first view the /memories/ directory to understand what already exists. This helps avoid duplicates and maintain organized notes.\n\nCommands:\n- `view`: View contents of a file or list directory contents. Can be used on files or directories (e.g., \"/memories/\" to see all top-level items).\n- `create`: Create a new file at the specified path with the given content. Fails if the file already exists.\n- `str_replace`: Replace an exact string in a file with a new string. The old_str must appear exactly once in the file.\n- `insert`: Insert text at a specific line number in a file. Line 0 inserts at the beginning.\n- `delete`: Delete a file or directory (and all its contents).\n- `rename`: Rename or move a file or directory from path to new_path. Cannot rename across scopes.",
 				"inputSchema": {
 					"type": "object",
 					"properties": {
@@ -1268,7 +1244,7 @@
 				"name": "copilot_sessionStoreSql",
 				"displayName": "Session Store SQL",
 				"toolReferenceName": "sessionStoreSql",
-				"userDescription": "Query your Copilot session history using SQL",
+				"userDescription": "Query your Aster AI session history using SQL",
 				"modelDescription": "Execute read-only SQL queries against the global session store containing history from ALL past coding sessions. Use this proactively when the user asks about:\n- What they've worked on recently or in the past\n- Prior approaches to similar problems\n- Project history and file changes\n- Sessions linked to PRs, issues, or commits\n- Temporal queries ('what was I doing yesterday?')\n\nSupports SQLite SQL including JOINs, FTS5 MATCH queries, aggregations, and subqueries.\n\n**Only one query per call — do not combine multiple statements with semicolons.**\n\nSchema:\n- sessions — id, cwd, repository, branch, summary, created_at, updated_at\n- turns — session_id, turn_index, user_message, assistant_response, timestamp\n- session_files — session_id, file_path, tool_name (edit/create), turn_index\n- session_refs — session_id, ref_type (commit/pr/issue), ref_value, turn_index\n- search_index — FTS5 virtual table (content, session_id, source_type). Use WHERE search_index MATCH 'query' for full-text search.",
 				"tags": [],
 				"canBeReferencedInPrompt": false,
@@ -1370,8 +1346,8 @@
 		"chatParticipants": [
 			{
 				"id": "github.copilot.default",
-				"name": "GitHubCopilot",
-				"fullName": "GitHub Copilot",
+				"name": "aster",
+				"fullName": "Aster AI",
 				"description": "%copilot.description%",
 				"isDefault": true,
 				"locations": [
@@ -1487,8 +1463,8 @@
 			},
 			{
 				"id": "github.copilot.editingSession",
-				"name": "GitHubCopilot",
-				"fullName": "GitHub Copilot",
+				"name": "aster",
+				"fullName": "Aster AI",
 				"description": "%copilot.edits.description%",
 				"isDefault": true,
 				"locations": [
@@ -1500,8 +1476,8 @@
 			},
 			{
 				"id": "github.copilot.editingSessionEditor",
-				"name": "GitHubCopilot",
-				"fullName": "GitHub Copilot",
+				"name": "aster",
+				"fullName": "Aster AI",
 				"description": "%copilot.edits.description%",
 				"isDefault": true,
 				"locations": [
@@ -1512,7 +1488,7 @@
 			{
 				"id": "github.copilot.editsAgent",
 				"name": "agent",
-				"fullName": "GitHub Copilot",
+				"fullName": "Aster AI",
 				"description": "%copilot.agent.description%",
 				"locations": [
 					"panel"
@@ -1637,8 +1613,8 @@
 			},
 			{
 				"id": "github.copilot.notebook",
-				"name": "GitHubCopilot",
-				"fullName": "GitHub Copilot",
+				"name": "aster",
+				"fullName": "Aster AI",
 				"description": "%copilot.description%",
 				"isDefault": true,
 				"locations": [
@@ -1658,8 +1634,8 @@
 			},
 			{
 				"id": "github.copilot.notebookEditorAgent",
-				"name": "GitHubCopilot",
-				"fullName": "GitHub Copilot",
+				"name": "aster",
+				"fullName": "Aster AI",
 				"description": "%copilot.description%",
 				"isDefault": true,
 				"locations": [
@@ -1764,11 +1740,11 @@
 		"languageModelChatProviders": [
 			{
 				"vendor": "copilot",
-				"displayName": "Copilot"
+				"displayName": "Aster"
 			},
 			{
 				"vendor": "copilotcli",
-				"displayName": "Copilot CLI",
+				"displayName": "Aster Agent CLI",
 				"when": "false"
 			},
 			{
@@ -2093,7 +2069,7 @@
 		],
 		"interactiveSession": [
 			{
-				"label": "GitHub Copilot",
+				"label": "Aster AI",
 				"id": "copilot",
 				"icon": "",
 				"when": "!github.copilot.interactiveSession.disabled"
@@ -2108,7 +2084,7 @@
 		"viewsWelcome": [
 			{
 				"view": "debug",
-				"when": "github.copilot-chat.activated",
+				"when": "aster.ai-chat.activated",
 				"contents": "%github.copilot.viewsWelcome.debug%"
 			}
 		],
@@ -2192,29 +2168,29 @@
 				"command": "github.copilot.cli.sessions.delete",
 				"title": "%github.copilot.command.deleteAgentSession%",
 				"icon": "$(close)",
-				"category": "Copilot CLI"
+				"category": "Aster Agent CLI"
 			},
 			{
 				"command": "agents.github.copilot.cli.deleteSessions",
 				"title": "%github.copilot.command.deleteAgentSession%",
-				"category": "Copilot CLI"
+				"category": "Aster Agent CLI"
 			},
 			{
 				"command": "github.copilot.cli.sessions.resumeInTerminal",
 				"title": "%github.copilot.command.cli.sessions.resumeInTerminal%",
 				"icon": "$(terminal)",
-				"category": "Copilot CLI"
+				"category": "Aster Agent CLI"
 			},
 			{
 				"command": "github.copilot.cli.sessions.rename",
 				"title": "%github.copilot.command.cli.sessions.rename%",
 				"icon": "$(edit)",
-				"category": "Copilot CLI"
+				"category": "Aster Agent CLI"
 			},
 			{
 				"command": "github.copilot.cli.sessions.setTitle",
 				"title": "%github.copilot.command.cli.sessions.setTitle%",
-				"category": "Copilot CLI"
+				"category": "Aster Agent CLI"
 			},
 			{
 				"command": "github.copilot.claude.sessions.rename",
@@ -2226,37 +2202,37 @@
 				"command": "github.copilot.cli.sessions.openRepository",
 				"title": "%github.copilot.command.cli.sessions.openRepository%",
 				"icon": "$(folder-opened)",
-				"category": "Copilot CLI"
+				"category": "Aster Agent CLI"
 			},
 			{
 				"command": "github.copilot.cli.sessions.openWorktreeInNewWindow",
 				"title": "%github.copilot.command.cli.sessions.openWorktreeInNewWindow%",
 				"icon": "$(folder-opened)",
-				"category": "Copilot CLI"
+				"category": "Aster Agent CLI"
 			},
 			{
 				"command": "github.copilot.cli.sessions.openWorktreeInTerminal",
 				"title": "%github.copilot.command.cli.sessions.openWorktreeInTerminal%",
 				"icon": "$(terminal)",
-				"category": "Copilot CLI"
+				"category": "Aster Agent CLI"
 			},
 			{
 				"command": "github.copilot.cli.sessions.copyWorktreeBranchName",
 				"title": "%github.copilot.command.cli.sessions.copyWorktreeBranchName%",
 				"icon": "$(copy)",
-				"category": "Copilot CLI"
+				"category": "Aster Agent CLI"
 			},
 			{
 				"command": "github.copilot.cli.sessions.commitToWorktree",
 				"title": "%github.copilot.command.cli.sessions.commitToWorktree%",
 				"icon": "$(git-commit)",
-				"category": "Copilot CLI"
+				"category": "Aster Agent CLI"
 			},
 			{
 				"command": "github.copilot.cli.sessions.commitToRepository",
 				"title": "%github.copilot.command.cli.sessions.commitToRepository%",
 				"icon": "$(git-commit)",
-				"category": "Copilot CLI"
+				"category": "Aster Agent CLI"
 			},
 			{
 				"command": "github.copilot.cli.newSession",
@@ -2272,9 +2248,9 @@
 			},
 			{
 				"command": "github.copilot.cli.openInCopilotCLI",
-				"title": "%github.copilot.command.cli.openInCopilotCLI%",
+				"title": "%github.copilot.command.cli.openInAster AICLI%",
 				"icon": "$(terminal)",
-				"category": "Copilot CLI"
+				"category": "Aster Agent CLI"
 			},
 			{
 				"command": "github.copilot.chat.compact",
@@ -2431,7 +2407,7 @@
 			{
 				"command": "github.copilot.interactiveSession.feedback",
 				"title": "%github.copilot.command.sendChatFeedback%",
-				"enablement": "github.copilot-chat.activated && !github.copilot.interactiveSession.disabled",
+				"enablement": "aster.ai-chat.activated && !github.copilot.interactiveSession.disabled",
 				"icon": "$(feedback)",
 				"category": "Chat"
 			},
@@ -2570,13 +2546,13 @@
 				"command": "github.copilot.buildRemoteWorkspaceIndex",
 				"title": "%github.copilot.command.buildRemoteWorkspaceIndex%",
 				"category": "Chat",
-				"enablement": "github.copilot-chat.activated"
+				"enablement": "aster.ai-chat.activated"
 			},
 			{
 				"command": "github.copilot.deleteExternalIngestWorkspaceIndex",
 				"title": "%github.copilot.command.deleteExternalIngestWorkspaceIndex%",
 				"category": "Developer",
-				"enablement": "github.copilot-chat.activated"
+				"enablement": "aster.ai-chat.activated"
 			},
 			{
 				"command": "github.copilot.report",
@@ -2590,7 +2566,7 @@
 			},
 			{
 				"command": "github.copilot.chat.startCopilotDebugCommand",
-				"title": "Start Copilot Debug"
+				"title": "Start Aster Debug"
 			},
 			{
 				"command": "github.copilot.chat.clearTemporalContext",
@@ -2692,22 +2668,22 @@
 			{
 				"command": "github.copilot.nes.captureExpected.start",
 				"title": "Record Expected Edit (NES)",
-				"category": "Copilot"
+				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.nes.captureExpected.confirm",
 				"title": "Confirm and Save Expected Edit Capture",
-				"category": "Copilot"
+				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.nes.captureExpected.abort",
 				"title": "Cancel Expected Edit Capture",
-				"category": "Copilot"
+				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.nes.captureExpected.submit",
 				"title": "Submit NES Captures",
-				"category": "Copilot"
+				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.debug.collectWorkspaceIndexDiagnostics",
@@ -2748,7 +2724,7 @@
 			},
 			{
 				"command": "github.copilot.cloud.sessions.openInBrowser",
-				"title": "%github.copilot.command.openCopilotAgentSessionsInBrowser%",
+				"title": "%github.copilot.command.openAster AIAgentSessionsInBrowser%",
 				"icon": "$(link-external)"
 			},
 			{
@@ -2764,139 +2740,139 @@
 				"command": "github.copilot.chat.openSuggestionsPanel",
 				"title": "Open Completions Panel",
 				"enablement": "github.copilot.extensionUnification.activated && !isWeb",
-				"category": "GitHub Copilot"
+				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.chat.toggleStatusMenu",
 				"title": "Open Status Menu",
 				"enablement": "github.copilot.extensionUnification.activated",
-				"category": "GitHub Copilot"
+				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.chat.completions.disable",
 				"title": "Disable Inline Suggestions",
 				"enablement": "github.copilot.extensionUnification.activated && github.copilot.activated && config.editor.inlineSuggest.enabled && github.copilot.completions.enabled",
-				"category": "GitHub Copilot"
+				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.chat.completions.enable",
 				"title": "Enable Inline Suggestions",
 				"enablement": "github.copilot.extensionUnification.activated && github.copilot.activated && !(config.editor.inlineSuggest.enabled && github.copilot.completions.enabled)",
-				"category": "GitHub Copilot"
+				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.chat.completions.toggle",
 				"title": "Toggle (Enable/Disable) Inline Suggestions",
 				"enablement": "github.copilot.extensionUnification.activated && github.copilot.activated",
-				"category": "GitHub Copilot"
+				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.chat.openModelPicker",
 				"title": "Change Completions Model",
-				"category": "GitHub Copilot",
+				"category": "Aster AI",
 				"enablement": "github.copilot.extensionUnification.activated && !isWeb && github.copilot.completions.hasMultipleModels"
 			},
 			{
 				"command": "github.copilot.chat.applyCopilotCLIAgentSessionChanges",
-				"title": "%github.copilot.command.applyCopilotCLIAgentSessionChanges%",
+				"title": "%github.copilot.command.applyAster AICLIAgentSessionChanges%",
 				"enablement": "!chatSessionRequestInProgress",
-				"category": "GitHub Copilot"
+				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.chat.applyCopilotCLIAgentSessionChanges.apply",
-				"title": "%github.copilot.chat.applyCopilotCLIAgentSessionChanges.apply%",
+				"title": "%github.copilot.chat.applyAster AICLIAgentSessionChanges.apply%",
 				"enablement": "!chatSessionRequestInProgress",
 				"icon": "$(git-stash-pop)",
-				"category": "GitHub Copilot"
+				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.chat.mergeCopilotCLIAgentSessionChanges.merge",
-				"title": "%github.copilot.chat.mergeCopilotCLIAgentSessionChanges.merge%",
+				"title": "%github.copilot.chat.mergeAster AICLIAgentSessionChanges.merge%",
 				"enablement": "!chatSessionRequestInProgress",
 				"icon": "$(git-merge)",
-				"category": "GitHub Copilot"
+				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.chat.mergeCopilotCLIAgentSessionChanges.mergeAndSync",
-				"title": "%github.copilot.chat.mergeCopilotCLIAgentSessionChanges.mergeAndSync%",
+				"title": "%github.copilot.chat.mergeAster AICLIAgentSessionChanges.mergeAndSync%",
 				"enablement": "!chatSessionRequestInProgress",
 				"icon": "$(sync)",
-				"category": "GitHub Copilot"
+				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.sessions.commit",
 				"title": "%github.copilot.command.sessions.commit%",
 				"enablement": "!chatSessionRequestInProgress",
 				"icon": "$(git-commit)",
-				"category": "GitHub Copilot"
+				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.sessions.commitAndSync",
 				"title": "%github.copilot.command.sessions.commitAndSync%",
 				"enablement": "!chatSessionRequestInProgress",
 				"icon": "$(sync)",
-				"category": "GitHub Copilot"
+				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.sessions.sync",
 				"title": "%github.copilot.command.sessions.sync%",
 				"enablement": "!chatSessionRequestInProgress",
 				"icon": "$(sync)",
-				"category": "GitHub Copilot"
+				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.sessions.discardChanges",
 				"title": "%github.copilot.command.sessions.discardChanges%",
 				"enablement": "!chatSessionRequestInProgress",
 				"icon": "$(discard)",
-				"category": "GitHub Copilot"
+				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.chat.createPullRequestCopilotCLIAgentSession.createPR",
-				"title": "%github.copilot.chat.createPullRequestCopilotCLIAgentSession.createPR%",
+				"title": "%github.copilot.chat.createPullRequestAster AICLIAgentSession.createPR%",
 				"enablement": "!chatSessionRequestInProgress",
 				"icon": "$(git-pull-request-create)",
-				"category": "GitHub Copilot"
+				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.chat.createPullRequestCopilotCLIAgentSession.updatePR",
-				"title": "%github.copilot.chat.createPullRequestCopilotCLIAgentSession.updatePR%",
+				"title": "%github.copilot.chat.createPullRequestAster AICLIAgentSession.updatePR%",
 				"enablement": "!chatSessionRequestInProgress",
 				"icon": "$(sync)",
-				"category": "GitHub Copilot"
+				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.chat.createDraftPullRequestCopilotCLIAgentSession.createDraftPR",
-				"title": "%github.copilot.chat.createDraftPullRequestCopilotCLIAgentSession.createDraftPR%",
+				"title": "%github.copilot.chat.createDraftPullRequestAster AICLIAgentSession.createDraftPR%",
 				"enablement": "!chatSessionRequestInProgress",
 				"icon": "$(git-pull-request-draft)",
-				"category": "GitHub Copilot"
+				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.chat.copilotCLI.addFileReference",
 				"title": "%github.copilot.command.chat.copilotCLI.addFileReference%",
 				"enablement": "github.copilot.chat.copilotCLI.hasSession",
-				"category": "Copilot CLI"
+				"category": "Aster Agent CLI"
 			},
 			{
 				"command": "github.copilot.chat.copilotCLI.addSelection",
 				"title": "%github.copilot.command.chat.copilotCLI.addSelection%",
 				"enablement": "github.copilot.chat.copilotCLI.hasSession",
-				"category": "Copilot CLI"
+				"category": "Aster Agent CLI"
 			},
 			{
 				"command": "github.copilot.chat.copilotCLI.acceptDiff",
 				"title": "%github.copilot.command.chat.copilotCLI.acceptDiff%",
 				"enablement": "github.copilot.chat.copilotCLI.hasActiveDiff",
 				"icon": "$(check)",
-				"category": "Copilot CLI"
+				"category": "Aster Agent CLI"
 			},
 			{
 				"command": "github.copilot.chat.copilotCLI.rejectDiff",
 				"title": "%github.copilot.command.chat.copilotCLI.rejectDiff%",
 				"enablement": "github.copilot.chat.copilotCLI.hasActiveDiff",
 				"icon": "$(close)",
-				"category": "Copilot CLI"
+				"category": "Aster Agent CLI"
 			},
 			{
 				"command": "github.copilot.chat.checkoutPullRequestReroute",
@@ -2908,58 +2884,58 @@
 				"command": "github.copilot.chat.cloudSessions.openRepository",
 				"title": "%github.copilot.command.cloudSessions.openRepository.title%",
 				"icon": "$(repo)",
-				"category": "GitHub Copilot"
+				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.chat.cloudSessions.clearCaches",
 				"title": "%github.copilot.command.cloudSessions.clearCaches.title%",
-				"category": "GitHub Copilot"
+				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.sessions.refreshChanges",
 				"title": "%github.copilot.command.sessions.refreshChanges%",
 				"icon": "$(refresh)",
-				"category": "GitHub Copilot"
+				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.sessions.initializeRepository",
 				"title": "%github.copilot.command.sessions.initializeRepository%",
 				"enablement": "!chatSessionRequestInProgress",
 				"icon": "$(repo)",
-				"category": "GitHub Copilot"
+				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.claude.sessions.commit",
 				"title": "%github.copilot.command.claude.sessions.commit%",
 				"enablement": "!chatSessionRequestInProgress",
 				"icon": "$(git-commit)",
-				"category": "GitHub Copilot"
+				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.claude.sessions.commitAndSync",
 				"title": "%github.copilot.command.claude.sessions.commitAndSync%",
 				"enablement": "!chatSessionRequestInProgress",
 				"icon": "$(sync)",
-				"category": "GitHub Copilot"
+				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.claude.sessions.sync",
 				"title": "%github.copilot.command.claude.sessions.sync%",
 				"enablement": "!chatSessionRequestInProgress",
 				"icon": "$(sync)",
-				"category": "GitHub Copilot"
+				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.claude.sessions.initializeRepository",
 				"title": "%github.copilot.command.claude.sessions.initializeRepository%",
 				"enablement": "!chatSessionRequestInProgress",
 				"icon": "$(repo)",
-				"category": "GitHub Copilot"
+				"category": "Aster AI"
 			}
 		],
 		"configuration": [
 			{
-				"title": "GitHub Copilot Chat",
+				"title": "Aster AI",
 				"id": "stable",
 				"properties": {
 					"github.copilot.chat.backgroundAgent.enabled": {
@@ -3147,12 +3123,12 @@
 						"additionalProperties": {
 							"type": "boolean"
 						},
-						"markdownDescription": "Enable or disable auto triggering of Copilot completions for specified [languages](https://code.visualstudio.com/docs/languages/identifiers). You can still trigger suggestions manually using `Alt + \\`"
+						"markdownDescription": "Enable or disable auto triggering of Aster AI completions for specified [languages](https://code.visualstudio.com/docs/languages/identifiers). You can still trigger suggestions manually using `Alt + \\`"
 					},
 					"github.copilot.selectedCompletionModel": {
 						"type": "string",
 						"default": "",
-						"markdownDescription": "The currently selected completion model ID. To select from a list of available models, use the __\"Change Completions Model\"__ command or open the model picker (from the Copilot menu in the VS Code title bar, select __\"Configure Code Completions\"__ then __\"Change Completions Model\"__. The value must be a valid model ID. An empty value indicates that the default model will be used."
+						"markdownDescription": "The currently selected completion model ID. To select from a list of available models, use the __\"Change Completions Model\"__ command or open the model picker (from the Aster AI menu in the VS Code title bar, select __\"Configure Code Completions\"__ then __\"Change Completions Model\"__. The value must be a valid model ID. An empty value indicates that the default model will be used."
 					},
 					"github.copilot.chat.claudeAgent.enabled": {
 						"type": "boolean",
@@ -3429,10 +3405,10 @@
 									"examples": [
 										{
 											"text": "Use underscore for field names."
-										},
-										{
-											"text": "Always add a comment: 'Generated by Copilot'."
-										}
+											},
+											{
+												"text": "Always add a comment: 'Generated by Aster AI'."
+											}
 									]
 								}
 							]
@@ -3443,10 +3419,10 @@
 							[
 								{
 									"file": ".copilot-codeGeneration-instructions.md"
-								},
-								{
-									"text": "Always add a comment: 'Generated by Copilot'."
-								}
+									},
+									{
+										"text": "Always add a comment: 'Generated by Aster AI'."
+									}
 							]
 						],
 						"tags": [
@@ -4892,7 +4868,7 @@
 					"github.copilot.chat.otel.enabled": {
 						"type": "boolean",
 						"default": false,
-						"markdownDescription": "Enable OpenTelemetry trace/metric/log emission for Copilot Chat operations. Env var `COPILOT_OTEL_ENABLED` takes precedence. Requires window reload.",
+						"markdownDescription": "Enable OpenTelemetry trace/metric/log emission for Aster AI operations. Env var `COPILOT_OTEL_ENABLED` takes precedence. Requires window reload.",
 						"tags": [
 							"advanced"
 						]
@@ -4906,7 +4882,7 @@
 							"file"
 						],
 						"default": "otlp-http",
-						"markdownDescription": "OTel exporter type for Copilot Chat telemetry. Requires window reload.",
+						"markdownDescription": "OTel exporter type for Aster AI telemetry. Requires window reload.",
 						"tags": [
 							"advanced"
 						]
@@ -4914,7 +4890,7 @@
 					"github.copilot.chat.otel.otlpEndpoint": {
 						"type": "string",
 						"default": "http://localhost:4318",
-						"markdownDescription": "OTLP collector endpoint URL for Copilot Chat OTel data. Env var `OTEL_EXPORTER_OTLP_ENDPOINT` takes precedence. Requires window reload.",
+						"markdownDescription": "OTLP collector endpoint URL for Aster AI OTel data. Env var `OTEL_EXPORTER_OTLP_ENDPOINT` takes precedence. Requires window reload.",
 						"tags": [
 							"advanced"
 						]
@@ -5195,7 +5171,7 @@
 				},
 				{
 					"command": "github.copilot.interactiveSession.feedback",
-					"when": "github.copilot-chat.activated && !github.copilot.interactiveSession.disabled"
+					"when": "aster.ai-chat.activated && !github.copilot.interactiveSession.disabled"
 				},
 				{
 					"command": "github.copilot.debug.workbenchState",
@@ -5921,40 +5897,6 @@
 				}
 			]
 		},
-		"icons": {
-			"copilot-logo": {
-				"description": "%github.copilot.icon%",
-				"default": {
-					"fontPath": "assets/copilot.woff",
-					"fontCharacter": "\\0041"
-				}
-			},
-			"copilot-warning": {
-				"description": "%github.copilot.icon%",
-				"default": {
-					"fontPath": "assets/copilot.woff",
-					"fontCharacter": "\\0042"
-				}
-			},
-			"copilot-notconnected": {
-				"description": "%github.copilot.icon%",
-				"default": {
-					"fontPath": "assets/copilot.woff",
-					"fontCharacter": "\\0043"
-				}
-			}
-		},
-		"iconFonts": [
-			{
-				"id": "copilot-font",
-				"src": [
-					{
-						"path": "assets/copilot.woff",
-						"format": "woff"
-					}
-				]
-			}
-		],
 		"terminalQuickFixes": [
 			{
 				"id": "copilot-chat.fixWithCopilot",
@@ -6068,7 +6010,7 @@
 				"command": "github.copilot.chat.rerunWithCopilotDebug",
 				"key": "ctrl+alt+.",
 				"mac": "cmd+alt+.",
-				"when": "github.copilot-chat.activated && terminalShellIntegrationEnabled && terminalFocus && !terminalAltBufferActive"
+				"when": "aster.ai-chat.activated && terminalShellIntegrationEnabled && terminalFocus && !terminalAltBufferActive"
 			},
 			{
 				"command": "github.copilot.nes.captureExpected.confirm",
@@ -6093,7 +6035,7 @@
 						"id": "copilot.setup.signIn",
 						"title": "%github.copilot.walkthrough.setup.signIn.title%",
 						"description": "%github.copilot.walkthrough.setup.signIn.description%",
-						"when": "chatEntitlementSignedOut && !view.workbench.panel.chat.view.copilot.visible && !github.copilot-chat.activated && !github.copilot.offline && !github.copilot.interactiveSession.individual.disabled && !github.copilot.interactiveSession.individual.expired && !github.copilot.interactiveSession.enterprise.disabled && !github.copilot.interactiveSession.contactSupport && !github.copilot.interactiveSession.invalidToken && !github.copilot.interactiveSession.rateLimited && !github.copilot.interactiveSession.gitHubLoginFailed",
+						"when": "chatEntitlementSignedOut && !view.workbench.panel.chat.view.copilot.visible && !aster.ai-chat.activated && !github.copilot.offline && !github.copilot.interactiveSession.individual.disabled && !github.copilot.interactiveSession.individual.expired && !github.copilot.interactiveSession.enterprise.disabled && !github.copilot.interactiveSession.contactSupport && !github.copilot.interactiveSession.invalidToken && !github.copilot.interactiveSession.rateLimited && !github.copilot.interactiveSession.gitHubLoginFailed",
 						"media": {
 							"video": {
 								"dark": "https://vscodewalkthroughs.z1.web.core.windows.net/v0.26/workspace.mp4",
@@ -6108,7 +6050,7 @@
 						"id": "copilot.setup.signInNoAction",
 						"title": "%github.copilot.walkthrough.setup.signIn.title%",
 						"description": "%github.copilot.walkthrough.setup.noAction.description%",
-						"when": "chatEntitlementSignedOut && view.workbench.panel.chat.view.copilot.visible && !github.copilot-chat.activated && !github.copilot.offline && !github.copilot.interactiveSession.individual.disabled && !github.copilot.interactiveSession.individual.expired && !github.copilot.interactiveSession.enterprise.disabled && !github.copilot.interactiveSession.contactSupport && !github.copilot.interactiveSession.invalidToken && !github.copilot.interactiveSession.rateLimited && !github.copilot.interactiveSession.gitHubLoginFailed",
+						"when": "chatEntitlementSignedOut && view.workbench.panel.chat.view.copilot.visible && !aster.ai-chat.activated && !github.copilot.offline && !github.copilot.interactiveSession.individual.disabled && !github.copilot.interactiveSession.individual.expired && !github.copilot.interactiveSession.enterprise.disabled && !github.copilot.interactiveSession.contactSupport && !github.copilot.interactiveSession.invalidToken && !github.copilot.interactiveSession.rateLimited && !github.copilot.interactiveSession.gitHubLoginFailed",
 						"media": {
 							"video": {
 								"dark": "https://vscodewalkthroughs.z1.web.core.windows.net/v0.26/workspace.mp4",
@@ -6123,7 +6065,7 @@
 						"id": "copilot.setup.signUp",
 						"title": "%github.copilot.walkthrough.setup.signUp.title%",
 						"description": "%github.copilot.walkthrough.setup.signUp.description%",
-						"when": "chatPlanCanSignUp && !view.workbench.panel.chat.view.copilot.visible && !github.copilot-chat.activated && !github.copilot.offline && (github.copilot.interactiveSession.individual.disabled || github.copilot.interactiveSession.individual.expired) && !github.copilot.interactiveSession.enterprise.disabled && !github.copilot.interactiveSession.contactSupport && !github.copilot.interactiveSession.invalidToken && !github.copilot.interactiveSession.rateLimited && !github.copilot.interactiveSession.gitHubLoginFailed",
+						"when": "chatPlanCanSignUp && !view.workbench.panel.chat.view.copilot.visible && !aster.ai-chat.activated && !github.copilot.offline && (github.copilot.interactiveSession.individual.disabled || github.copilot.interactiveSession.individual.expired) && !github.copilot.interactiveSession.enterprise.disabled && !github.copilot.interactiveSession.contactSupport && !github.copilot.interactiveSession.invalidToken && !github.copilot.interactiveSession.rateLimited && !github.copilot.interactiveSession.gitHubLoginFailed",
 						"media": {
 							"video": {
 								"dark": "https://vscodewalkthroughs.z1.web.core.windows.net/v0.26/workspace.mp4",
@@ -6138,7 +6080,7 @@
 						"id": "copilot.setup.signUpNoAction",
 						"title": "%github.copilot.walkthrough.setup.signUp.title%",
 						"description": "%github.copilot.walkthrough.setup.noAction.description%",
-						"when": "chatPlanCanSignUp && view.workbench.panel.chat.view.copilot.visible && !github.copilot-chat.activated && !github.copilot.offline && (github.copilot.interactiveSession.individual.disabled || github.copilot.interactiveSession.individual.expired) && !github.copilot.interactiveSession.enterprise.disabled && !github.copilot.interactiveSession.contactSupport && !github.copilot.interactiveSession.invalidToken && !github.copilot.interactiveSession.rateLimited && !github.copilot.interactiveSession.gitHubLoginFailed",
+						"when": "chatPlanCanSignUp && view.workbench.panel.chat.view.copilot.visible && !aster.ai-chat.activated && !github.copilot.offline && (github.copilot.interactiveSession.individual.disabled || github.copilot.interactiveSession.individual.expired) && !github.copilot.interactiveSession.enterprise.disabled && !github.copilot.interactiveSession.contactSupport && !github.copilot.interactiveSession.invalidToken && !github.copilot.interactiveSession.rateLimited && !github.copilot.interactiveSession.gitHubLoginFailed",
 						"media": {
 							"video": {
 								"dark": "https://vscodewalkthroughs.z1.web.core.windows.net/v0.26/workspace.mp4",
@@ -6318,15 +6260,15 @@
 			{
 				"type": "copilotcli",
 				"name": "cli",
-				"displayName": "Copilot CLI",
-				"icon": "$(copilot)",
-				"welcomeTitle": "Copilot CLI",
-				"welcomeMessage": "Run tasks in the background with the Copilot CLI",
-				"inputPlaceholder": "Run tasks in the background with the Copilot CLI, type `#` for adding context",
+				"displayName": "Background Agent",
+				"icon": "$(terminal)",
+				"welcomeTitle": "Background Agent",
+				"welcomeMessage": "Run local background coding tasks",
+				"inputPlaceholder": "Run a background task, type `#` for adding context",
 				"order": 1,
 				"canDelegate": true,
 				"description": "%github.copilot.session.providerDescription.background%",
-				"when": "config.github.copilot.chat.backgroundAgent.enabled",
+				"when": "false",
 				"capabilities": {
 					"supportsFileAttachments": true,
 					"supportsProblemAttachments": true,
@@ -6383,7 +6325,7 @@
 				"order": 2,
 				"canDelegate": true,
 				"description": "%github.copilot.session.providerDescription.cloud%",
-				"when": "config.github.copilot.chat.cloudAgent.enabled",
+				"when": "false",
 				"capabilities": {
 					"supportsFileAttachments": true
 				},
@@ -6482,9 +6424,9 @@
 		"terminal": {
 			"profiles": [
 				{
-					"icon": "copilot",
+					"icon": "terminal",
 					"id": "copilot-cli",
-					"title": "GitHub Copilot CLI",
+					"title": "Background Agent",
 					"titleTemplate": "${sequence}"
 				}
 			]
@@ -6673,15 +6615,5 @@
 		"node-gyp": "npm:node-gyp@10.3.1",
 		"zod": "3.25.76"
 	},
-	"vscodeCommit": "94c8e2adc50e26ef70af85a0de3a9efed757acaa",
-	"__metadata": {
-		"id": "7ec7d6e6-b89e-4cc5-a59b-d6c4d238246f",
-		"publisherId": {
-			"publisherId": "7c1c19cd-78eb-4dfb-8999-99caf7679002",
-			"publisherName": "github",
-			"displayName": "GitHub",
-			"flags": "verified"
-		},
-		"publisherDisplayName": "GitHub"
-	}
+	"vscodeCommit": "94c8e2adc50e26ef70af85a0de3a9efed757acaa"
 }
