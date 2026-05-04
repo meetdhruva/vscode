@@ -222,8 +222,6 @@ export class RemoteEmbeddingsCache implements IEmbeddingsCache {
 	private _remoteCacheEntries: EmbeddingCacheEntries | undefined;
 	private readonly remoteCacheVersionKey: string;
 
-	private _remoteCacheURL: string | undefined;
-	private _remoteCacheLatestUpdateURL: string | undefined;
 	protected embeddingsCache: EmbeddingsCache;
 
 	constructor(
@@ -252,20 +250,14 @@ export class RemoteEmbeddingsCache implements IEmbeddingsCache {
 		return embeddingsModelToRemoteContainer(this.embeddingType);
 	}
 
-	private async getRemoteCacheURL(): Promise<string> {
-		if (!this._remoteCacheURL) {
-			const remoteCacheContainer = await this.getRemoteContainer();
-			this._remoteCacheURL = RemoteEmbeddingsCache.calculateRemoteCDNURL(remoteCacheContainer, this.remoteCacheType, this.cacheVersion);
-		}
-		return this._remoteCacheURL!;
+	private async getRemoteCacheURL(): Promise<string | undefined> {
+		const remoteCacheContainer = await this.getRemoteContainer();
+		return RemoteEmbeddingsCache.calculateRemoteCDNURL(remoteCacheContainer, this.remoteCacheType, this.cacheVersion);
 	}
 
-	private async getRemoteCacheLatestUpdateURL(): Promise<string> {
-		if (!this._remoteCacheLatestUpdateURL) {
-			const remoteCacheContainer = await this.getRemoteContainer();
-			this._remoteCacheLatestUpdateURL = RemoteEmbeddingsCache.calculateRemoteCDNLatestURL(remoteCacheContainer, this.remoteCacheType, this.cacheVersion);
-		}
-		return this._remoteCacheLatestUpdateURL!;
+	private async getRemoteCacheLatestUpdateURL(): Promise<string | undefined> {
+		const remoteCacheContainer = await this.getRemoteContainer();
+		return RemoteEmbeddingsCache.calculateRemoteCDNLatestURL(remoteCacheContainer, this.remoteCacheType, this.cacheVersion);
 	}
 
 	protected async fetchRemoteCache(): Promise<EmbeddingCacheEntries | undefined> {
@@ -273,8 +265,10 @@ export class RemoteEmbeddingsCache implements IEmbeddingsCache {
 			return this._remoteCacheEntries;
 		}
 		const remoteCacheURL = await this.getRemoteCacheURL();
+		if (!remoteCacheURL) {
+			return;
+		}
 		try {
-			const remoteCacheURL = await this.getRemoteCacheURL();
 			const response = await this.fetcherService.fetch(remoteCacheURL, { method: 'GET', callSite: 'embeddings-remote-cache' });
 			if (response.ok) {
 				this._remoteCacheEntries = (await response.json()) as EmbeddingCacheEntries;
@@ -293,6 +287,9 @@ export class RemoteEmbeddingsCache implements IEmbeddingsCache {
 
 	protected async fetchRemoteCacheLatest(): Promise<string | undefined> {
 		const remoteCacheLatestUpdateURL = await this.getRemoteCacheLatestUpdateURL();
+		if (!remoteCacheLatestUpdateURL) {
+			return;
+		}
 		try {
 			const response = await this.fetcherService.fetch(remoteCacheLatestUpdateURL, { method: 'GET', callSite: 'embeddings-remote-cache-latest' });
 			if (response.ok) {
@@ -330,12 +327,12 @@ export class RemoteEmbeddingsCache implements IEmbeddingsCache {
 		return remoteCache as T;
 	}
 
-	static calculateRemoteCDNURL(cacheContainer: RemoteEmbeddingsContainer, embeddingsType: RemoteCacheType, cacheVersion: string): string {
-		return `https://embeddings.vscode-cdn.net/${cacheContainer}/v${cacheVersion}/${embeddingsType}/core.json`;
+	static calculateRemoteCDNURL(_cacheContainer: RemoteEmbeddingsContainer, _embeddingsType: RemoteCacheType, _cacheVersion: string): string | undefined {
+		return undefined;
 	}
 
-	static calculateRemoteCDNLatestURL(cacheContainer: RemoteEmbeddingsContainer, embeddingsType: RemoteCacheType, cacheVersion: string): string {
-		return `https://embeddings.vscode-cdn.net/${cacheContainer}/v${cacheVersion}/${embeddingsType}/latest.txt`;
+	static calculateRemoteCDNLatestURL(_cacheContainer: RemoteEmbeddingsContainer, _embeddingsType: RemoteCacheType, _cacheVersion: string): string | undefined {
+		return undefined;
 	}
 }
 
@@ -348,7 +345,6 @@ export class RemoteEmbeddingsCache implements IEmbeddingsCache {
 export class RemoteEmbeddingsExtensionCache extends RemoteEmbeddingsCache {
 	// This is a nested structure used to help us do just patching of updated extensions
 	private _remoteExtensionCache: EmbeddingCacheEntriesWithExtensions | undefined;
-	private _baseExtensionCDNURL: string | undefined;
 
 	constructor(
 		cacheType: EmbeddingCacheType,
@@ -363,12 +359,9 @@ export class RemoteEmbeddingsExtensionCache extends RemoteEmbeddingsCache {
 		super(cacheType, cacheKey, cacheVersion, embeddingType, remoteCacheType, fetcher, instantiationService);
 	}
 
-	private async getBaseExtensionCDNURL(): Promise<string> {
-		if (!this._baseExtensionCDNURL) {
-			const remoteCacheContainer = await this.getRemoteContainer();
-			this._baseExtensionCDNURL = RemoteEmbeddingsExtensionCache.calculateBaseRemoteExtensionCDNURL(remoteCacheContainer, this.remoteCacheType, this.cacheVersion);
-		}
-		return this._baseExtensionCDNURL!;
+	private async getBaseExtensionCDNURL(): Promise<string | undefined> {
+		const remoteCacheContainer = await this.getRemoteContainer();
+		return RemoteEmbeddingsExtensionCache.calculateBaseRemoteExtensionCDNURL(remoteCacheContainer, this.remoteCacheType, this.cacheVersion);
 	}
 
 	private constructExposedCache(): EmbeddingCacheEntries | undefined {
@@ -387,6 +380,9 @@ export class RemoteEmbeddingsExtensionCache extends RemoteEmbeddingsCache {
 
 	private async fetchRemoteExtensionCache(extensionId: string): Promise<EmbeddingCacheEntries | undefined> {
 		const baseExtensionCDNURL = await this.getBaseExtensionCDNURL();
+		if (!baseExtensionCDNURL) {
+			return;
+		}
 		const extensionUrl = `${baseExtensionCDNURL}/${extensionId}.json`;
 		try {
 			const response = await this.fetcherService.fetch(extensionUrl, { method: 'GET', callSite: 'embeddings-extension-cache' });
@@ -462,8 +458,8 @@ export class RemoteEmbeddingsExtensionCache extends RemoteEmbeddingsCache {
 		return workbenchService.getAllExtensions().filter(e => !e.id.startsWith('vscode')).map(e => e.id);
 	}
 
-	static calculateBaseRemoteExtensionCDNURL(cacheContainer: RemoteEmbeddingsContainer, embeddingsType: RemoteCacheType, cacheVersion: string): string {
-		return `https://embeddings.vscode-cdn.net/${cacheContainer}/v${cacheVersion}/${embeddingsType}`;
+	static calculateBaseRemoteExtensionCDNURL(_cacheContainer: RemoteEmbeddingsContainer, _embeddingsType: RemoteCacheType, _cacheVersion: string): string | undefined {
+		return undefined;
 	}
 }
 

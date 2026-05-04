@@ -42,6 +42,19 @@ export function checkCopilotEnginesVersion(repoRoot: string): string | undefined
 	return undefined;
 }
 
+function isAllowedExtensionsGallery(extensionsGallery: unknown): boolean {
+	if (!extensionsGallery || typeof extensionsGallery !== 'object') {
+		return false;
+	}
+
+	const gallery = extensionsGallery as Record<string, unknown>;
+	return gallery.serviceUrl === 'https://open-vsx.org/vscode/gallery'
+		&& gallery.itemUrl === 'https://open-vsx.org/vscode/item'
+		&& gallery.resourceUrlTemplate === 'https://open-vsx.org/api/{publisher}/{name}/{version}/file/{path}'
+		&& (!gallery.controlUrl || gallery.controlUrl === '')
+		&& (!gallery.nlsBaseUrl || gallery.nlsBaseUrl === '');
+}
+
 /**
  * Main hygiene function that runs checks on files
  */
@@ -52,8 +65,8 @@ export function hygiene(some: NodeJS.ReadWriteStream | string[] | undefined, run
 	const productJson = es.through(function (file: VinylFile) {
 		const product = JSON.parse(file.contents!.toString('utf8'));
 
-		if (product.extensionsGallery) {
-			console.error(`product.json: Contains 'extensionsGallery'`);
+		if (product.extensionsGallery && !isAllowedExtensionsGallery(product.extensionsGallery)) {
+			console.error(`product.json: Contains unsupported 'extensionsGallery'`);
 			errorCount++;
 		}
 
