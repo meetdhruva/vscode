@@ -28,10 +28,7 @@ vi.mock('../xAIProvider', () => ({ XAIBYOKLMProvider: class { static readonly pr
 import { BYOKContrib } from '../byokContribution';
 
 describe('BYOKContrib', () => {
-	it('registers BYOK language model providers without Copilot auth when known-model fetch fails', async () => {
-		const fetcherService = {
-			fetch: vi.fn().mockRejectedValue(new Error('offline')),
-		};
+	it('registers BYOK language model providers without Copilot auth or known-model network fetch', async () => {
 		const logService = createMockLogService();
 		const extensionContext = createMockExtensionContext();
 		const instantiationService = {
@@ -41,7 +38,6 @@ describe('BYOKContrib', () => {
 		};
 
 		const contribution = new BYOKContrib(
-			fetcherService as any,
 			logService as any,
 			extensionContext as any,
 			instantiationService as any,
@@ -51,11 +47,7 @@ describe('BYOKContrib', () => {
 			expect(vscodeMock.registerLanguageModelChatProvider).toHaveBeenCalledTimes(8);
 		});
 
-		expect(fetcherService.fetch).toHaveBeenCalledWith(
-			'https://main.vscode-cdn.net/extensions/copilotChat.json',
-			{ method: 'GET', callSite: 'byok-known-models' }
-		);
-		expect(logService.warn).toHaveBeenCalledWith(expect.stringContaining('Failed to fetch known models list'));
+		expect(logService.info).toHaveBeenCalledWith(expect.stringContaining('Using bundled empty known models list'));
 		const registeredProviderNames = (vscodeMock.registerLanguageModelChatProvider.mock.calls as unknown as Array<[string, unknown]>).map(call => call[0]);
 		expect(registeredProviderNames).toEqual([
 			'ollama',
