@@ -31,6 +31,7 @@ import * as newWorkspaceContribution from '../../getting-started/vscode-node/new
 import { ScmContextProviderContribution } from '../../git/vscode/scmContextprovider';
 import { GitHubMcpContrib } from '../../githubMcp/vscode-node/githubMcp.contribution';
 import { IgnoredFileProviderContribution } from '../../ignore/vscode-node/ignoreProvider';
+import { AsterInlineCompletionsContribution } from '../../inlineCompletions/vscode-node/asterInlineCompletionProvider';
 import { JointCompletionsProviderContribution } from '../../inlineEdits/vscode-node/jointInlineCompletionProvider';
 import { FixTestFailureContribution } from '../../intents/vscode-node/fixTestFailureContributions';
 import { ExtensionStateCommandContribution } from '../../log/vscode-node/extensionStateCommand';
@@ -80,6 +81,7 @@ export const vscodeNodeContributions: IExtensionContributionFactory[] = [
 	asContributionFactory(LanguageModelAccess),
 	asContributionFactory(BYOKContrib),
 	asContributionFactory(WalkthroughCommandContribution),
+	asContributionFactory(AsterInlineCompletionsContribution),
 	asContributionFactory(JointCompletionsProviderContribution),
 	// replaced by JointCompletionsProviderContribution
 	// asContributionFactory(InlineEditProviderFeatureContribution),

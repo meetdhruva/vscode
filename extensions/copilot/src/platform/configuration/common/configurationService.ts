@@ -915,6 +915,9 @@ export namespace ConfigKey {
 		'scminput': false
 	});
 	export const selectedCompletionsModel = defineSetting<string>('selectedCompletionModel', ConfigType.Simple, '');
+	export const AsterInlineCompletionsEnabled = defineSetting<boolean>('aster.inlineCompletions.enabled', ConfigType.Simple, false, vBoolean());
+	export const AsterInlineCompletionsVendor = defineSetting<string>('aster.inlineCompletions.vendor', ConfigType.Simple, '', vString());
+	export const AsterInlineCompletionsModelId = defineSetting<string>('aster.inlineCompletions.modelId', ConfigType.Simple, '', vString());
 
 	export const RateLimitAutoSwitchToAuto = defineSetting<boolean>('chat.rateLimitAutoSwitchToAuto', ConfigType.Simple, false, vBoolean());
 
