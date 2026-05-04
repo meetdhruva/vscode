@@ -1,0 +1,68 @@
+name: Aster Compliance
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/aster-compliance.yml"
+      - "package.json"
+      - "product.json"
+      - "scripts/aster/**"
+      - "extensions/copilot/package.json"
+      - "extensions/copilot/package.nls.json"
+      - "extensions/copilot/media/**"
+      - "extensions/copilot/src/extension/conversation/vscode-node/chatParticipants.ts"
+      - "extensions/copilot/src/extension/intents/node/hookResultProcessor.ts"
+      - "extensions/copilot/src/extension/intents/node/toolCallingLoop.ts"
+      - "extensions/copilot/src/extension/log/vscode-node/loggingActions.ts"
+      - "extensions/copilot/src/extension/prompts/node/base/copilotIdentity.tsx"
+      - "extensions/copilot/src/extension/prompts/node/base/safetyRules.tsx"
+      - "extensions/copilot/src/extension/prompts/node/agent/familyHPrompts.tsx"
+      - "extensions/copilot/src/extension/prompts/node/agent/minimaxPrompts.tsx"
+      - "src/vs/server/node/webClientServer.ts"
+      - "src/vs/workbench/contrib/webview/common/webview.ts"
+      - "src/vs/workbench/services/environment/browser/environmentService.ts"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/aster-compliance.yml"
+      - "package.json"
+      - "product.json"
+      - "scripts/aster/**"
+      - "extensions/copilot/package.json"
+      - "extensions/copilot/package.nls.json"
+      - "extensions/copilot/media/**"
+      - "extensions/copilot/src/extension/conversation/vscode-node/chatParticipants.ts"
+      - "extensions/copilot/src/extension/intents/node/hookResultProcessor.ts"
+      - "extensions/copilot/src/extension/intents/node/toolCallingLoop.ts"
+      - "extensions/copilot/src/extension/log/vscode-node/loggingActions.ts"
+      - "extensions/copilot/src/extension/prompts/node/base/copilotIdentity.tsx"
+      - "extensions/copilot/src/extension/prompts/node/base/safetyRules.tsx"
+      - "extensions/copilot/src/extension/prompts/node/agent/familyHPrompts.tsx"
+      - "extensions/copilot/src/extension/prompts/node/agent/minimaxPrompts.tsx"
+      - "src/vs/server/node/webClientServer.ts"
+      - "src/vs/workbench/contrib/webview/common/webview.ts"
+      - "src/vs/workbench/services/environment/browser/environmentService.ts"
+
+permissions:
+  contents: read
+
+jobs:
+  aster-compliance:
+    name: Aster Compliance
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Check Aster metadata compliance
+        run: npm run aster:check-compliance
+
+      - name: Check Aster runtime assets
+        run: npm run aster:check-runtime-assets

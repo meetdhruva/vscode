@@ -16,6 +16,7 @@
     "test-node": "mocha test/unit/node/index.js --delay --ui=tdd --timeout=5000 --exit",
     "test-extension": "vscode-test",
     "test-build-scripts": "cd build && npm run test",
+    "aster:check-compliance": "node scripts/aster/check-compliance.mjs",
     "aster:check-runtime-assets": "node scripts/aster/check-runtime-assets.mjs",
     "check-cyclic-dependencies": "node build/lib/checkCyclicDependencies.ts out",
     "preinstall": "node build/npm/preinstall.ts",
@@ -263,10 +264,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/microsoft/vscode.git"
+    "url": "https://github.com/meetdhruva/vscode.git"
   },
   "bugs": {
-    "url": "https://github.com/microsoft/vscode/issues"
+    "url": "https://github.com/meetdhruva/vscode/issues"
   },
   "optionalDependencies": {
     "windows-foreground-love": "0.6.1"
