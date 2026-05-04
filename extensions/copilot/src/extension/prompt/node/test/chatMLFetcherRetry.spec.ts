@@ -189,6 +189,51 @@ describe('ChatMLFetcherImpl retry logic', () => {
 		});
 	});
 
+	describe('BYOK endpoints', () => {
+		it('does not require a Copilot token for client-side BYOK chat requests', async () => {
+			const byokEndpoint = {
+				...createMockEndpoint(),
+				url: 'https://llm.example/v1/chat/completions',
+				urlOrRequestMetadata: 'https://llm.example/v1/chat/completions',
+				isExtensionContributed: true,
+				getExtraHeaders: () => ({
+					Authorization: 'Bearer user-provider-key',
+				}),
+			} as unknown as IChatEndpoint;
+			const byokFetcher = new ChatMLFetcherImpl(
+				mockFetcherService as unknown as IFetcherService,
+				new NullTelemetryService(),
+				new NullRequestLogger(),
+				new TestLogService(),
+				new ThrowingAuthenticationService() as unknown as IAuthenticationService,
+				createMockInteractionService(),
+				createMockChatQuotaService(),
+				new TestCAPIClientService() as unknown as ICAPIClientService,
+				createMockConversationOptions(),
+				configurationService,
+				new NullExperimentationService(),
+				createMockPowerService(),
+				new InstantiationServiceBuilder([
+					[IFetcherService, mockFetcherService as unknown as IFetcherService],
+					[ITelemetryService, new NullTelemetryService()],
+					[ICAPIClientService, new TestCAPIClientService() as unknown as ICAPIClientService],
+				]).seal() as unknown as IInstantiationService,
+				new NullChatWebSocketManager(),
+				new NoopOTelService(resolveOTelConfig({ env: {}, extensionVersion: '0.0.0', sessionId: 'test' })),
+			);
+
+			mockFetcherService.queueResponse(createSuccessResponse('BYOK response'));
+
+			const result = await byokFetcher.fetchMany({
+				...createBaseOpts(),
+				endpoint: byokEndpoint,
+			}, cancellationTokenSource.token);
+
+			expect(result.type).toBe(ChatFetchResponseType.Success);
+			expect(mockFetcherService.fetchOptionsUsed[0]?.headers.Authorization).toBe('Bearer user-provider-key');
+		});
+	});
+
 	describe('status code parsing', () => {
 		it('handles comma-separated status codes with spaces', async () => {
 			configurationService.setConfig(ConfigKey.TeamInternal.RetryServerErrorStatusCodes, '500, 502 , 503');
@@ -387,14 +432,20 @@ class MockFetcherService {
 	 * Used to verify that the retry logic correctly switches fetchers.
 	 */
 	private _fetcherIdsUsed: (string | undefined)[] = [];
+	private _fetchOptionsUsed: any[] = [];
 
 	get fetcherIdsUsed(): (string | undefined)[] {
 		return this._fetcherIdsUsed;
 	}
 
+	get fetchOptionsUsed(): any[] {
+		return this._fetchOptionsUsed;
+	}
+
 	async fetch(_url: string, options?: any): Promise<Response> {
 		this._fetchCallCount++;
 		this._fetcherIdsUsed.push(options?.useFetcher);
+		this._fetchOptionsUsed.push(options);
 		const next = this._responseQueue.shift();
 		if (!next) {
 			throw new Error('No more queued responses');
@@ -452,6 +503,12 @@ class TestAuthenticationService extends MockAuthenticationService {
 			token: 'test-token',
 			username: 'test-user',
 		} as CopilotToken);
+	}
+}
+
+class ThrowingAuthenticationService extends MockAuthenticationService {
+	override getCopilotToken(_force?: boolean): Promise<CopilotToken> {
+		return Promise.reject(new Error('Copilot token should not be requested for BYOK endpoints'));
 	}
 }
 
