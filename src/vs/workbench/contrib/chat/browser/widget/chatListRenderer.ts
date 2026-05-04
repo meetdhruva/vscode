@@ -112,7 +112,7 @@ import { isAgentHostTarget } from '../agentSessions/agentSessions.js';
 
 const $ = dom.$;
 
-const COPILOT_USERNAME = 'GitHub Copilot';
+const COPILOT_USERNAME = 'Aster AI';
 const WORKING_CAUGHT_UP_DEBOUNCE_MS = 50;
 
 export interface IChatListItemTemplate {

@@ -18,7 +18,7 @@ import { GHPR_EXTENSION_ID } from '../../chatSessions/vscode/chatSessionsUriHand
 import { EXTENSION_ID } from '../../common/constants';
 
 const welcomeViewContextKeys = {
-	Activated: 'github.copilot-chat.activated',
+	Activated: 'aster.ai-chat.activated',
 	Offline: 'github.copilot.offline',
 	IndividualDisabled: 'github.copilot.interactiveSession.individual.disabled',
 	IndividualExpired: 'github.copilot.interactiveSession.individual.expired',
@@ -142,7 +142,7 @@ export class ContextKeysContribution extends Disposable {
 			const message =
 				reason === 'GitHubLoginFailed'
 					? SESSION_LOGIN_MESSAGE
-					: `GitHub Copilot could not connect to server. Extension activation failed: "${reason}"`;
+					: `Aster AI could not connect to server. Extension activation failed: "${reason}"`;
 			this._logService.error(message);
 		}
 
@@ -201,7 +201,7 @@ export class ContextKeysContribution extends Disposable {
 			const copilotToken = await this._authenticationService.getCopilotToken();
 			const disabled = !copilotToken.isEditorPreviewFeaturesEnabled();
 			if (disabled) {
-				this._logService.warn(`Copilot preview features are disabled by organizational policy. Learn more: https://aka.ms/github-copilot-org-enable-features`);
+				this._logService.warn(`Aster AI preview features are disabled by organizational policy.`);
 			}
 			commands.executeCommand('setContext', previewFeaturesDisabledContextKey, disabled);
 		} catch (e) {
