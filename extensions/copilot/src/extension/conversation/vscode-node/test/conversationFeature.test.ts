@@ -29,6 +29,7 @@ suite('Conversation feature test suite', function () {
 	let accessor: ITestingServicesAccessor;
 	let instaService: IInstantiationService;
 	let sandbox: sinon.SinonSandbox;
+	let selectChatModelsStub: sinon.SinonStub;
 
 	function createAccessor() {
 		const testingServiceCollection = createExtensionTestingServices();
@@ -50,6 +51,7 @@ suite('Conversation feature test suite', function () {
 		sandbox = sinon.createSandbox();
 		sandbox.stub(vscode.commands, 'registerCommand').returns({ dispose: () => { } });
 		sandbox.stub(vscode.workspace, 'registerFileSystemProvider').returns({ dispose: () => { } });
+		selectChatModelsStub = sandbox.stub(vscode.lm, 'selectChatModels').resolves([]);
 		createAccessor();
 	});
 
@@ -87,6 +89,39 @@ suite('Conversation feature test suite', function () {
 		try {
 			const copilotToken = new CopilotToken(createTestExtendedTokenInfo({ token: 'token', username: 'fake', copilot_plan: 'unknown' }));
 			setCopilotToken(accessor.get(IAuthenticationService), copilotToken);
+
+			assert.deepStrictEqual(conversationFeature.enabled, true);
+			assert.deepStrictEqual(conversationFeature.activated, true);
+		} finally {
+			conversationFeature.dispose();
+		}
+	});
+
+	test('The feature is enabled and activated when a BYOK model is configured without a Copilot token', async function () {
+		selectChatModelsStub.callsFake(async selector => {
+			if (selector?.vendor !== 'customoai') {
+				return [];
+			}
+
+			return [{
+				id: 'local-model',
+				name: 'Local Model',
+				vendor: 'customoai',
+				family: 'local-model',
+				version: '1.0.0',
+				maxInputTokens: 128000,
+				capabilities: {
+					supportsToolCalling: true,
+					supportsImageToText: false,
+				},
+				sendRequest: async () => { throw new Error('not implemented'); },
+				countTokens: async () => 0,
+			} satisfies vscode.LanguageModelChat];
+		});
+
+		const conversationFeature = instaService.createInstance(ConversationFeature);
+		try {
+			await conversationFeature.activationBlocker;
 
 			assert.deepStrictEqual(conversationFeature.enabled, true);
 			assert.deepStrictEqual(conversationFeature.activated, true);

@@ -17,6 +17,7 @@
     "test-extension": "vscode-test",
     "test-build-scripts": "cd build && npm run test",
     "aster:check-compliance": "node scripts/aster/check-compliance.mjs",
+    "aster:check-byok-activation": "node scripts/aster/check-byok-activation.mjs",
     "aster:check-runtime-assets": "node scripts/aster/check-runtime-assets.mjs",
     "aster:check-release-artifacts": "node scripts/aster/check-release-artifacts.mjs",
     "aster:check-release-readiness": "node scripts/aster/check-release-readiness.mjs",

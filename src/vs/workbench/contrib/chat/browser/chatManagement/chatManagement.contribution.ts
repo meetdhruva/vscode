@@ -29,16 +29,21 @@ import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase 
 
 const languageModelsOpenSettingsIcon = registerIcon('language-models-open-settings', Codicon.goToFile, localize('languageModelsOpenSettings', 'Icon for open language models settings commands.'));
 
-const LANGUAGE_MODELS_ENTITLEMENT_PRECONDITION = ContextKeyExpr.and(ChatContextKeys.enabled, ContextKeyExpr.or(
-	ChatContextKeys.Entitlement.planFree,
-	ChatContextKeys.Entitlement.planEdu,
-	ChatContextKeys.Entitlement.planPro,
-	ChatContextKeys.Entitlement.planProPlus,
-	ChatContextKeys.Entitlement.planMax,
-	ChatContextKeys.Entitlement.planBusiness,
-	ChatContextKeys.Entitlement.planEnterprise,
-	ChatContextKeys.Entitlement.internal
-));
+const ASTER_BYOK_PROVIDERS_AVAILABLE = ContextKeyExpr.has('aster.ai.byok.providersAvailable');
+
+const LANGUAGE_MODELS_ENTITLEMENT_PRECONDITION = ContextKeyExpr.or(
+	ASTER_BYOK_PROVIDERS_AVAILABLE,
+	ContextKeyExpr.and(ChatContextKeys.enabled, ContextKeyExpr.or(
+		ChatContextKeys.Entitlement.planFree,
+		ChatContextKeys.Entitlement.planEdu,
+		ChatContextKeys.Entitlement.planPro,
+		ChatContextKeys.Entitlement.planProPlus,
+		ChatContextKeys.Entitlement.planMax,
+		ChatContextKeys.Entitlement.planBusiness,
+		ChatContextKeys.Entitlement.planEnterprise,
+		ChatContextKeys.Entitlement.internal
+	))
+);
 
 Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane(
 	EditorPaneDescriptor.create(

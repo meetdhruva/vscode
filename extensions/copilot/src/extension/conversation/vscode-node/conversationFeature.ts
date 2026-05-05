@@ -38,6 +38,7 @@ import { NotebookCellLinkifier } from '../../linkify/vscode-node/notebookCellLin
 import { SymbolLinkifier } from '../../linkify/vscode-node/symbolLinkifier';
 import { IntentDetector } from '../../prompt/node/intentDetector';
 import { SemanticSearchTextSearchProvider } from '../../workspaceSemanticSearch/node/semanticSearchTextSearchProvider';
+import { hasAsterBYOKChatModel } from '../../byok/vscode-node/byokLanguageModels';
 import { GitHubPullRequestProviders } from '../node/githubPullRequestProviders';
 import { startFeedbackCollection } from './feedbackCollection';
 import { registerNewWorkspaceIntentCommand } from './newWorkspaceFollowup';
@@ -64,6 +65,10 @@ export class ConversationFeature implements IExtensionContribution {
 
 	readonly id = 'conversationFeature';
 	readonly activationBlocker?: Promise<void>;
+	private _activationBlockerDeferred: DeferredPromise<void> | undefined;
+	private _activationBlockerCompleted = false;
+	private _featureEnablementUpdate = 0;
+	private _didMarkCopilotTokenWaitComplete = false;
 
 	constructor(
 		@IInstantiationService private instantiationService: IInstantiationService,
@@ -85,31 +90,25 @@ export class ConversationFeature implements IExtensionContribution {
 		this._enabled = false;
 		this._activated = false;
 
-		// Register Copilot token listener
-		this.registerCopilotTokenListener();
-
 		const activationBlockerDeferred = new DeferredPromise<void>();
+		this._activationBlockerDeferred = activationBlockerDeferred;
 		this.activationBlocker = activationBlockerDeferred.p;
 		if (authenticationService.copilotToken) {
 			this.logService.info(`ConversationFeature: Copilot token already available`);
-			this.activated = true;
-			activationBlockerDeferred.complete();
+			void this.updateFeatureEnablement('startup');
 		} else {
 			markChatExtGlobal(ChatExtGlobalPerfMark.WillWaitForCopilotToken);
-			this.logService.info(`ConversationFeature: Waiting for copilot token to activate conversation feature`);
+			this.logService.info(`ConversationFeature: Waiting for copilot token or Aster BYOK model to activate conversation feature`);
+			void this.updateFeatureEnablement('startup');
 		}
 
 		this._disposables.add(authenticationService.onDidAuthenticationChange(async () => {
-			const hasSession = !!authenticationService.copilotToken;
-			this.logService.info(`ConversationFeature: onDidAuthenticationChange has token: ${hasSession}`);
-			if (hasSession) {
-				markChatExtGlobal(ChatExtGlobalPerfMark.DidWaitForCopilotToken);
-				this.activated = true;
-			} else {
-				this.activated = false;
-			}
+			this.logService.info(`ConversationFeature: onDidAuthenticationChange has token: ${!!authenticationService.copilotToken}`);
+			await this.updateFeatureEnablement('authentication changed');
+		}));
 
-			activationBlockerDeferred.complete();
+		this._disposables.add(vscode.lm.onDidChangeChatModels(() => {
+			void this.updateFeatureEnablement('language models changed');
 		}));
 	}
 
@@ -164,15 +163,41 @@ export class ConversationFeature implements IExtensionContribution {
 		return this.chatAgentService.register(options);
 	}
 
+	private async updateFeatureEnablement(reason: string): Promise<void> {
+		const update = ++this._featureEnablementUpdate;
+		const hasCopilotToken = this.authenticationService.copilotToken !== undefined;
+		const hasBYOKModel = hasCopilotToken ? false : await hasAsterBYOKChatModel();
+
+		if (update !== this._featureEnablementUpdate) {
+			return;
+		}
+
+		const chatEnabled = hasCopilotToken || hasBYOKModel;
+		this.logService.info(`ConversationFeature: ${reason}; copilot token: ${hasCopilotToken}; Aster BYOK model: ${hasBYOKModel}; enabled: ${chatEnabled}`);
+
+		if (hasCopilotToken && !this._didMarkCopilotTokenWaitComplete) {
+			this._didMarkCopilotTokenWaitComplete = true;
+			markChatExtGlobal(ChatExtGlobalPerfMark.DidWaitForCopilotToken);
+		}
+
+		this.enabled = chatEnabled;
+		this.activated = chatEnabled;
+
+		if (chatEnabled && !this._activationBlockerCompleted) {
+			this._activationBlockerCompleted = true;
+			this._activationBlockerDeferred?.complete();
+		}
+	}
+
 	private registerSearchProvider(): IDisposable | undefined {
 		if (this._searchProviderRegistered) {
 			return;
 		} else {
 			this._searchProviderRegistered = true;
 
-			// Don't register for no auth user
-			if (this.authenticationService.copilotToken?.isNoAuthUser) {
-				this.logService.debug('ConversationFeature: Skipping search provider registration - no GitHub session available');
+			// Semantic search depends on Copilot-authenticated embedding services.
+			if (!this.authenticationService.copilotToken || this.authenticationService.copilotToken.isNoAuthUser) {
+				this.logService.debug('ConversationFeature: Skipping search provider registration - no Copilot token available');
 				return;
 			}
 
@@ -338,14 +363,6 @@ export class ConversationFeature implements IExtensionContribution {
 			)
 		].forEach(d => disposables.add(d));
 		return disposables;
-	}
-
-	private registerCopilotTokenListener() {
-		this._disposables.add(this.authenticationService.onDidAuthenticationChange(() => {
-			const chatEnabled = this.authenticationService.copilotToken !== undefined;
-			this.logService.info(`copilot token sku: ${this.authenticationService.copilotToken?.sku ?? ''}`);
-			this.enabled = chatEnabled ?? false;
-		}));
 	}
 
 	private registerTerminalQuickFixProviders() {

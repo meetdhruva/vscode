@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { CancellationToken } from 'vscode';
+import type { CancellationToken, LanguageModelChat } from 'vscode';
 import { IAuthenticationService } from '../../../platform/authentication/common/authentication';
 import { ChatFetchResponseType, ChatLocation } from '../../../platform/chat/common/commonTypes';
 import { IConversationOptions } from '../../../platform/chat/common/conversationOptions';
@@ -13,11 +13,16 @@ import { Diff } from '../../../platform/git/common/gitDiffService';
 import { INotificationService } from '../../../platform/notification/common/notificationService';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
 import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { LanguageModelChatMessage } from '../../../vscodeTypes';
+import { selectAsterBYOKChatModel } from '../../byok/vscode-node/byokLanguageModels';
 import { PromptRenderer } from '../../prompts/node/base/promptRenderer';
 import { GitCommitMessagePrompt } from '../../prompts/node/git/gitCommitMessagePrompt';
 import { RecentCommitMessages } from '../common/repository';
 
 type ResponseFormat = 'noTextCodeBlock' | 'oneTextCodeBlock' | 'multipleTextCodeBlocks';
+
+const MAX_BYOK_DIFF_CHARS = 60_000;
+const MAX_BYOK_RESPONSE_CHARS = 4_000;
 
 export class GitCommitMessageGenerator {
 	constructor(
@@ -32,6 +37,10 @@ export class GitCommitMessageGenerator {
 
 	async generateGitCommitMessage(repositoryName: string, branchName: string, changes: Diff[], recentCommitMessages: RecentCommitMessages, attemptCount: number, token: CancellationToken): Promise<string | undefined> {
 		const startTime = Date.now();
+		const byokModel = await selectAsterBYOKChatModel();
+		if (byokModel) {
+			return this.generateAsterBYOKGitCommitMessage(byokModel, repositoryName, branchName, changes, recentCommitMessages, attemptCount, token);
+		}
 
 		const endpoint = await this.endpointProvider.getChatEndpoint('copilot-fast');
 		const promptRenderer = PromptRenderer.create(this.instantiationService, endpoint, GitCommitMessagePrompt, { repositoryName, branchName, changes, recentCommitMessages });
@@ -105,6 +114,78 @@ export class GitCommitMessageGenerator {
 		}
 
 		return commitMessage;
+	}
+
+	private async generateAsterBYOKGitCommitMessage(model: Pick<LanguageModelChat, 'sendRequest'>, repositoryName: string, branchName: string, changes: Diff[], recentCommitMessages: RecentCommitMessages, attemptCount: number, token: CancellationToken): Promise<string | undefined> {
+		const temperature = Math.min(
+			this.conversationOptions.temperature * (1 + attemptCount),
+			2
+		);
+		const prompt = this.buildAsterBYOKGitCommitMessagePrompt(repositoryName, branchName, changes, recentCommitMessages);
+		const response = await model.sendRequest(
+			[LanguageModelChatMessage.User(prompt)],
+			{
+				justification: 'Aster uses your configured BYOK language model to generate a git commit message.',
+				modelOptions: {
+					temperature,
+					max_tokens: 180,
+				}
+			},
+			token
+		);
+
+		let raw = '';
+		for await (const part of response.text) {
+			if (token.isCancellationRequested) {
+				return undefined;
+			}
+			raw += part;
+			if (raw.length >= MAX_BYOK_RESPONSE_CHARS) {
+				break;
+			}
+		}
+
+		if (token.isCancellationRequested) {
+			return undefined;
+		}
+
+		const [, commitMessage] = this.processGeneratedCommitMessage(raw.trim());
+		return commitMessage.trim() || undefined;
+	}
+
+	private buildAsterBYOKGitCommitMessagePrompt(repositoryName: string, branchName: string, changes: Diff[], recentCommitMessages: RecentCommitMessages): string {
+		const sections = [
+			'You are an AI programming assistant helping a developer write a succinct git commit message.',
+			'Analyze the code changes and return only one commit message. Do not include explanations, issue IDs, tags, or author names.',
+			'Wrap the final message in a single markdown ```text code block.',
+			'',
+			'# Repository',
+			`Name: ${repositoryName}`,
+			`Branch: ${branchName}`,
+		];
+
+		if (recentCommitMessages.user.length > 0) {
+			sections.push('', '# Recent user commits', ...recentCommitMessages.user.map(message => `- ${message}`));
+		}
+
+		if (recentCommitMessages.repository.length > 0) {
+			sections.push('', '# Recent repository commits', ...recentCommitMessages.repository.map(message => `- ${message}`));
+		}
+
+		sections.push('', '# Code changes');
+		let remainingDiffChars = MAX_BYOK_DIFF_CHARS;
+		for (const change of changes) {
+			if (remainingDiffChars <= 0) {
+				sections.push('', '[Additional diffs omitted due to prompt size.]');
+				break;
+			}
+
+			const diff = change.diff.slice(0, remainingDiffChars);
+			sections.push('', `## ${change.uri.toString()}`, '```diff', diff, '```');
+			remainingDiffChars -= diff.length;
+		}
+
+		return sections.join('\n');
 	}
 
 	private processGeneratedCommitMessage(raw: string): [ResponseFormat, string] {
