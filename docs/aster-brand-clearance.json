@@ -1,0 +1,40 @@
+{
+	"status": "pending",
+	"decisionOwner": "pending legal/product review",
+	"clearedOn": null,
+	"approvedPublicDomains": [],
+	"approvedProductNames": {
+		"nameShort": "Aster",
+		"nameLong": "Aster Editor",
+		"applicationName": "aster",
+		"serverApplicationName": "aster-server",
+		"tunnelApplicationName": "aster-tunnel",
+		"win32DirName": "Aster",
+		"win32NameVersion": "Aster",
+		"win32RegValueName": "Aster",
+		"win32AppUserModelId": "MeetDhruva.Aster",
+		"darwinBundleIdentifier": "dev.meetdhruva.aster",
+		"linuxIconName": "aster",
+		"urlProtocol": "aster"
+	},
+	"approvedAsterAiExtension": {
+		"name": "ai-chat",
+		"displayName": "Aster AI",
+		"publisher": "aster",
+		"description": "Provider-neutral AI chat and coding features for Aster"
+	},
+	"approvals": {
+		"trademarkReview": false,
+		"productNames": false,
+		"commandAndPackageNames": false,
+		"publicDomains": false,
+		"originalIconAssets": false,
+		"storeMetadata": false,
+		"vsCodeCompatibilityWording": false,
+		"upstreamAttribution": false
+	},
+	"notes": [
+		"Aster is a working name until this manifest is updated with real legal/product clearance evidence.",
+		"Do not set status to cleared until the approvals are true, public domains are secured, and the approved names match product.json and the bundled Aster AI extension manifest."
+	]
+}
