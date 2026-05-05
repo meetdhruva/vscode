@@ -17,7 +17,7 @@ Names rejected during the initial conflict check:
 - `Codara`: existing AI-native software development platform.
 - `Locus`: existing AI extension/engineering-tool conflicts found during the subagent branding pass.
 
-This is not a trademark clearance. Final branding still needs a dedicated legal/trademark review, original icon assets, package metadata review, and public-facing website/domain decisions.
+This is not a trademark clearance. Final branding still needs a dedicated legal/trademark review, original icon assets, package metadata review, and public-facing website/domain decisions. Release-facing blockers are tracked in [Aster Release Readiness Checklist](./aster-release-checklist.md).
 
 ## Trunk-Based Delivery
 
@@ -39,6 +39,7 @@ Included:
 
 - Register BYOK language model providers without requiring a GitHub Copilot token.
 - Expose the existing `customoai` OpenAI-compatible provider in stable builds.
+- Document user-facing BYOK setup for OpenAI, OpenAI-compatible endpoints, Ollama, Azure, Anthropic, Gemini, xAI, and OpenRouter in [Aster BYOK Setup](./aster-byok-setup.md).
 - Keep the known-models CDN fetch best-effort so local/custom providers can still register when the fetch fails.
 - Configure Open VSX as the default extension gallery.
 - Stop auto-enabling `GitHub.copilot-chat` from product metadata.
