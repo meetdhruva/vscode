@@ -10,6 +10,8 @@ const root = resolve(import.meta.dirname, '../..');
 const failures = [];
 
 const product = readJson('product.json');
+const webviewPreloadPathTemplate = '/{{quality}}/{{commit}}/out/vs/workbench/contrib/webview/browser/pre/';
+const webviewContentExternalBaseUrlTemplatePattern = /^https:\/\/\{\{uuid\}\}\.([^/?#]+)\/\{\{quality\}\}\/\{\{commit\}\}\/out\/vs\/workbench\/contrib\/webview\/browser\/pre\/$/;
 
 const approvedMicrosoftAuthoredBuiltInExtensions = [
 	// Add entries only after explicit Aster legal/product approval.
@@ -64,13 +66,24 @@ function checkWebviewAssetHost() {
 	}
 
 	for (const token of ['{{uuid}}', '{{quality}}', '{{commit}}']) {
-		if (!template.includes(token)) {
+		const count = countOccurrences(template, token);
+		if (!count) {
 			fail(`product.webviewContentExternalBaseUrlTemplate: missing required token ${token}`);
+		} else if (count > 1) {
+			fail(`product.webviewContentExternalBaseUrlTemplate: expected token ${token} exactly once`);
 		}
+	}
+
+	const baseHost = getWebviewTemplateBaseHost(template);
+	if (!baseHost) {
+		fail(`product.webviewContentExternalBaseUrlTemplate: expected shape https://{{uuid}}.<host>${webviewPreloadPathTemplate}`);
+	} else {
+		checkWebviewBaseHost('product.webviewContentExternalBaseUrlTemplate host', baseHost);
 	}
 
 	const forbiddenPatterns = [
 		{ label: 'placeholder .invalid host', pattern: /\.invalid(?:\/|$)/i },
+		{ label: 'localhost-like host', pattern: /\/\/(?:\{\{uuid\}\}\.)?(?:localhost|127\.0\.0\.1|0\.0\.0\.0)(?::|\/|$)|\.local(?:domain)?(?:\/|$)/i },
 		{ label: 'VS Code CDN host', pattern: /vscode-cdn\.net/i },
 		{ label: 'Microsoft-hosted Azure storage', pattern: /web\.core\.windows\.net/i },
 		{ label: 'Visual Studio Marketplace asset host', pattern: /gallerycdn\.vsassets\.io|vscode-unpkg\.net/i },
@@ -84,9 +97,32 @@ function checkWebviewAssetHost() {
 }
 
 function checkWebviewRuntimeFallbacks() {
+	const defaultsFile = 'src/vs/base/common/asterWebviewDefaults.ts';
+	const defaultsContent = readText(defaultsFile);
+	const productBaseHost = getWebviewTemplateBaseHost(product.webviewContentExternalBaseUrlTemplate);
+	const defaultHostMatch = defaultsContent.match(/defaultAsterWebviewResourceBaseHost\s*=\s*['"]([^'"]+)['"]/);
+	const defaultBaseHost = defaultHostMatch?.[1];
+
+	if (!defaultBaseHost) {
+		fail(`${defaultsFile}: missing defaultAsterWebviewResourceBaseHost`);
+	} else {
+		checkWebviewBaseHost(`${defaultsFile}: defaultAsterWebviewResourceBaseHost`, defaultBaseHost);
+		if (productBaseHost && defaultBaseHost !== productBaseHost) {
+			fail(`${defaultsFile}: default host ${defaultBaseHost} does not match product webview host ${productBaseHost}`);
+		}
+	}
+
+	if (!defaultsContent.includes(`defaultAsterWebviewContentExternalBaseUrlTemplate = \`https://{{uuid}}.\${defaultAsterWebviewResourceBaseHost}${webviewPreloadPathTemplate}\`;`)) {
+		fail(`${defaultsFile}: default webview URL template must derive from defaultAsterWebviewResourceBaseHost and keep ${webviewPreloadPathTemplate}`);
+	}
+
+	if (!defaultsContent.includes('defaultAsterWebviewFrameSource = `https://*.${defaultAsterWebviewResourceBaseHost}`;')) {
+		fail(`${defaultsFile}: default webview frame source must derive from defaultAsterWebviewResourceBaseHost`);
+	}
+
 	const placeholders = [
 		{
-			file: 'src/vs/base/common/asterWebviewDefaults.ts',
+			file: defaultsFile,
 			label: 'central webview host defaults',
 			pattern: /aster-webview\.invalid/i,
 		},
@@ -112,6 +148,46 @@ function checkWebviewRuntimeFallbacks() {
 			fail(`${file}: contains placeholder ${label}`);
 		}
 	}
+}
+
+function getWebviewTemplateBaseHost(template) {
+	if (typeof template !== 'string') {
+		return undefined;
+	}
+	return template.match(webviewContentExternalBaseUrlTemplatePattern)?.[1];
+}
+
+function checkWebviewBaseHost(label, baseHost) {
+	if (!/^[a-z0-9.-]+$/i.test(baseHost)) {
+		fail(`${label}: expected a DNS host suffix, found ${JSON.stringify(baseHost)}`);
+	}
+	if (!baseHost.includes('.') || baseHost.startsWith('.') || baseHost.endsWith('.') || baseHost.includes('..')) {
+		fail(`${label}: expected a public DNS host suffix, found ${JSON.stringify(baseHost)}`);
+	}
+	for (const hostLabel of baseHost.split('.')) {
+		if (!hostLabel || hostLabel.startsWith('-') || hostLabel.endsWith('-')) {
+			fail(`${label}: invalid DNS label in ${JSON.stringify(baseHost)}`);
+			break;
+		}
+	}
+
+	const forbiddenBaseHostPatterns = [
+		{ label: 'placeholder .invalid host', pattern: /(?:^|\.)invalid$/i },
+		{ label: 'localhost-like host', pattern: /^(?:localhost|127\.0\.0\.1|0\.0\.0\.0)$|(?:^|\.)local(?:domain)?$/i },
+		{ label: 'VS Code CDN host', pattern: /(?:^|\.)vscode-cdn\.net$/i },
+		{ label: 'Microsoft-hosted Azure storage', pattern: /(?:^|\.)web\.core\.windows\.net$/i },
+		{ label: 'Visual Studio Marketplace asset host', pattern: /(?:^|\.)gallerycdn\.vsassets\.io$|(?:^|\.)vscode-unpkg\.net$/i },
+	];
+
+	for (const { label: forbiddenLabel, pattern } of forbiddenBaseHostPatterns) {
+		if (pattern.test(baseHost)) {
+			fail(`${label}: contains ${forbiddenLabel}`);
+		}
+	}
+}
+
+function countOccurrences(value, search) {
+	return value.split(search).length - 1;
 }
 
 function checkBundledExtensionPolicy() {
