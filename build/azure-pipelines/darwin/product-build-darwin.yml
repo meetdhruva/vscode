@@ -84,3 +84,11 @@ jobs:
           VSCODE_RUN_ELECTRON_TESTS: ${{ parameters.VSCODE_RUN_ELECTRON_TESTS }}
           VSCODE_RUN_BROWSER_TESTS: ${{ parameters.VSCODE_RUN_BROWSER_TESTS }}
           VSCODE_RUN_REMOTE_TESTS: ${{ parameters.VSCODE_RUN_REMOTE_TESTS }}
+
+      - ${{ if ne(parameters.VSCODE_CIBUILD, true) }}:
+        - template: ../common/aster-release-artifact-scan.yml@self
+          parameters:
+            artifactPaths: |
+              $(Build.ArtifactStagingDirectory)/VSCode-darwin-$(VSCODE_ARCH)
+              $(Agent.BuildDirectory)/vscode-server-darwin-$(VSCODE_ARCH)
+              $(Agent.BuildDirectory)/vscode-server-darwin-$(VSCODE_ARCH)-web

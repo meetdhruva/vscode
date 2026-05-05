@@ -115,3 +115,17 @@ jobs:
           VSCODE_RUN_BROWSER_TESTS: ${{ parameters.VSCODE_RUN_BROWSER_TESTS }}
           VSCODE_RUN_REMOTE_TESTS: ${{ parameters.VSCODE_RUN_REMOTE_TESTS }}
           VSCODE_RUN_CHECKS: ${{ parameters.VSCODE_RUN_CHECKS }}
+
+      - ${{ if ne(parameters.VSCODE_CIBUILD, true) }}:
+        - template: ../common/aster-release-artifact-scan.yml@self
+          parameters:
+            artifactPaths: |
+              $(Agent.BuildDirectory)/VSCode-linux-$(VSCODE_ARCH)
+              $(Agent.BuildDirectory)/vscode-server-linux-$(VSCODE_ARCH)
+              $(Agent.BuildDirectory)/vscode-server-linux-$(VSCODE_ARCH)-web
+
+      - ${{ if and(ne(parameters.VSCODE_CIBUILD, true), eq(parameters.VSCODE_BUILD_LINUX_SNAP, true)) }}:
+        - template: ../common/aster-release-artifact-scan.yml@self
+          parameters:
+            artifactPaths: |
+              $(SNAP_EXTRACTED_PATH)

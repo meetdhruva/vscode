@@ -136,8 +136,14 @@ jobs:
           GITHUB_TOKEN: "$(github-distro-mixin-password)"
         displayName: Build
 
+      - template: ../common/aster-release-artifact-scan.yml@self
+        parameters:
+          artifactPaths: |
+            $(Agent.BuildDirectory)/vscode-web
+
       - task: AzureCLI@2
         displayName: Fetch secrets from Azure
+        condition: and(succeeded(), eq(variables['VSCODE_PUBLISH'], 'true'))
         inputs:
           azureSubscription: vscode
           scriptType: pscore
@@ -156,6 +162,7 @@ jobs:
           AZURE_ID_TOKEN="$(AZURE_ID_TOKEN)" \
             node build/azure-pipelines/upload-cdn.ts
         displayName: Upload to CDN
+        condition: and(succeeded(), eq(variables['VSCODE_PUBLISH'], 'true'))
 
       - script: |
           set -e
@@ -165,6 +172,7 @@ jobs:
           AZURE_ID_TOKEN="$(AZURE_ID_TOKEN)" \
             node build/azure-pipelines/upload-sourcemaps.ts out-vscode-web-min out-vscode-web-min/vs/workbench/workbench.web.main.internal.js.map
         displayName: Upload sourcemaps (Web)
+        condition: and(succeeded(), eq(variables['VSCODE_PUBLISH'], 'true'))
 
       - script: |
           set -e
@@ -174,3 +182,4 @@ jobs:
           AZURE_ID_TOKEN="$(AZURE_ID_TOKEN)" \
             node build/azure-pipelines/upload-nlsmetadata.ts
         displayName: Upload NLS Metadata
+        condition: and(succeeded(), eq(variables['VSCODE_PUBLISH'], 'true'))

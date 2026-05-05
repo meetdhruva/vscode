@@ -4,12 +4,16 @@ on:
   pull_request:
     paths:
       - ".github/workflows/aster-compliance.yml"
+      - "build/azure-pipelines/**"
+      - "docs/aster-*.json"
+      - "docs/aster-*.md"
       - "package.json"
       - "product.json"
       - "scripts/aster/**"
       - "extensions/copilot/package.json"
       - "extensions/copilot/package.nls.json"
       - "extensions/copilot/media/**"
+      - "src/vs/base/common/asterWebviewDefaults.ts"
       - "extensions/copilot/src/extension/conversation/vscode-node/chatParticipants.ts"
       - "extensions/copilot/src/extension/intents/node/hookResultProcessor.ts"
       - "extensions/copilot/src/extension/intents/node/toolCallingLoop.ts"
@@ -26,12 +30,16 @@ on:
       - main
     paths:
       - ".github/workflows/aster-compliance.yml"
+      - "build/azure-pipelines/**"
+      - "docs/aster-*.json"
+      - "docs/aster-*.md"
       - "package.json"
       - "product.json"
       - "scripts/aster/**"
       - "extensions/copilot/package.json"
       - "extensions/copilot/package.nls.json"
       - "extensions/copilot/media/**"
+      - "src/vs/base/common/asterWebviewDefaults.ts"
       - "extensions/copilot/src/extension/conversation/vscode-node/chatParticipants.ts"
       - "extensions/copilot/src/extension/intents/node/hookResultProcessor.ts"
       - "extensions/copilot/src/extension/intents/node/toolCallingLoop.ts"
@@ -66,3 +74,6 @@ jobs:
 
       - name: Check Aster runtime assets
         run: npm run aster:check-runtime-assets
+
+      - name: Check Aster release-readiness guardrails
+        run: npm run aster:check-release-readiness-guardrails

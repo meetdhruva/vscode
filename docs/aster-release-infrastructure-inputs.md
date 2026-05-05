@@ -24,7 +24,7 @@ This document lists the external inputs required before Aster can produce public
 - `microsoft/vscode-distro` references.
 - VS Code release metadata and Microsoft signing owner metadata.
 
-The check is expected to fail until these references are replaced with Aster-owned infrastructure. A passing source scan is necessary but not sufficient for a public release; final release validation must also run `npm run aster:check-release-artifacts -- <unpacked artifact paths...>` against unpacked desktop, server, web, and extension artifacts.
+The check is expected to fail until these references are replaced with Aster-owned infrastructure. A passing source scan is necessary but not sufficient for a public release; publishing builds also run `build/azure-pipelines/common/aster-release-artifact-scan.yml`, which calls `npm run aster:check-release-artifacts -- <unpacked artifact paths...>` against unpacked desktop, server, web, and extension artifacts before artifact publication.
 
 ## Pipeline Gate
 
