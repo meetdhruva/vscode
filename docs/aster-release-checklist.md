@@ -4,6 +4,9 @@ This checklist tracks release-facing productization items that cannot be validat
 
 ## Blocking Before Public Release
 
+- Collect the external release inputs.
+  Use [Aster Release Unblocker Intake](./aster-release-unblocker-intake.md) as the single handoff checklist for domain, release infrastructure, and brand/legal owners. The intake is not release evidence by itself; it tells owners exactly which real decisions and evidence references must be added to the canonical manifests below.
+
 - Replace the placeholder webview asset host.
   `product.webviewContentExternalBaseUrlTemplate` and the centralized TypeScript defaults in `src/vs/base/common/asterWebviewDefaults.ts` currently use the placeholder `aster-webview.invalid`. Pick an Aster-controlled HTTPS wildcard host, publish the webview preload assets for every released commit and quality, then update product metadata, the central defaults, and `docs/aster-webview-host.json`. The production template must keep the exact `https://{{uuid}}.<host>/{{quality}}/{{commit}}/out/vs/workbench/contrib/webview/browser/pre/` shape so each webview gets an isolated origin and each released build can load matching assets. The host must have production DNS/TLS and CSP coverage for `https://*.<host>` and must not be `.invalid`, localhost-like, VS Code CDN, Microsoft Azure storage, or Visual Studio Marketplace asset infrastructure. Use [Aster Webview Host Readiness](./aster-webview-host-readiness.md) as the deployment and validation checklist.
 
@@ -17,6 +20,7 @@ This checklist tracks release-facing productization items that cannot be validat
 
 ## Canonical Evidence Manifests
 
+- `docs/aster-release-unblocker-intake.md` is the handoff checklist for external owners. It is not an evidence manifest and does not make a release ready by itself.
 - `docs/aster-webview-host.json` tracks the real webview asset host, owner/date, and DNS/TLS/deployment/probe evidence.
 - `docs/aster-release-infrastructure.json` tracks Aster-owned signing, storage, update metadata, service connections, release approvers, distro source, publisher metadata, dry-run release, and artifact-scan evidence.
 - `docs/aster-brand-clearance.json` tracks legal/product approval for names, domains, assets, store metadata, compatibility wording, and upstream attribution.
