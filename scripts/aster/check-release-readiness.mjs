@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '../..');
@@ -160,54 +160,45 @@ function isMatchingBuiltInExtensionApproval(extension, approval) {
 }
 
 function checkReleaseInfrastructurePolicy() {
-	const scannedFiles = [
-		{
-			file: 'build/azure-pipelines/common/sign.ts',
-			patterns: [
-				{ label: 'ESRP signing service', pattern: /ESRP|api\.esrp\.microsoft\.com/i },
-				{ label: 'Microsoft timestamp service', pattern: /rfc3161\.gtm\.corp\.microsoft\.com/i },
-				{ label: 'VS Code signing metadata', pattern: /OpusName['"], parameterValue: ['"]VS Code/i },
-				{ label: 'Microsoft signing owner metadata', pattern: /['"]-o['"], ['"]Microsoft['"]|https:\/\/www\.microsoft\.com/i },
-			],
-		},
-		{
-			file: 'build/azure-pipelines/common/publish.ts',
-			patterns: [
-				{ label: 'ESRP release service', pattern: /ESRPReleaseService|api\.esrp\.microsoft\.com/i },
-				{ label: 'Microsoft identity authority', pattern: /login\.microsoftonline\.com/i },
-				{ label: 'Microsoft release owners', pattern: /@microsoft\.com/i },
-				{ label: 'VS Code release metadata', pattern: /title: ['"]VS Code['"]|name: ['"]VS Code['"]|description: ['"]VS Code['"]/i },
-			],
-		},
-		{
-			file: 'build/azure-pipelines/distro/download-distro.yml',
-			patterns: [
-				{ label: 'Microsoft Azure Key Vault', pattern: /AzureKeyVault|vscode-build-secrets/i },
-				{ label: 'Microsoft vscode-distro source', pattern: /microsoft\/vscode-distro|microsoft-vscode-distro/i },
-			],
-		},
-		{
-			file: 'build/azure-pipelines/product-build.yml',
-			patterns: [
-				{ label: 'Microsoft download endpoint', pattern: /vscode\.download\.prss\.microsoft\.com/i },
-				{ label: 'Microsoft ESRP variables', pattern: /VSCODE_ESRP_|ESRP_CLIENT_ID|ESRP_TENANT_ID/i },
-				{ label: 'Microsoft vscode-distro source', pattern: /microsoft\/vscode-distro/i },
-			],
-		},
-		{
-			file: 'build/azure-pipelines/product-publish.yml',
-			patterns: [
-				{ label: 'Microsoft Azure Key Vault', pattern: /AzureKeyVault|vscode-build-secrets|vscode-esrp/i },
-				{ label: 'Microsoft ESRP release credentials', pattern: /ESRP_CLIENT_ID|ESRP_TENANT_ID/i },
-			],
-		},
+	const releaseInfraPatterns = [
+		{ label: 'Microsoft ESRP signing or release service', pattern: /ESRPReleaseService|api\.esrp\.microsoft\.com|VSCODE_ESRP_|ESRP_CLIENT_ID|ESRP_TENANT_ID|Install ESRP Tooling|Find ESRP CLI/i },
+		{ label: 'Microsoft timestamp service', pattern: /rfc3161\.gtm\.corp\.microsoft\.com/i },
+		{ label: 'Microsoft Azure Key Vault or ESRP secrets', pattern: /AzureKeyVault|vscode-build-secrets|vscode-esrp/i },
+		{ label: 'Microsoft identity authority', pattern: /login\.microsoftonline\.com/i },
+		{ label: 'Microsoft release owners', pattern: /@microsoft\.com/i },
+		{ label: 'Microsoft download endpoint', pattern: /vscode\.download\.prss\.microsoft\.com/i },
+		{ label: 'Microsoft vscode-distro source', pattern: /microsoft\/vscode-distro|microsoft-vscode-distro/i },
+		{ label: 'VS Code release metadata', pattern: /OpusName['"], parameterValue: ['"]VS Code|title: ['"]VS Code['"]|name: ['"]VS Code['"]|description: ['"]VS Code['"]/i },
+		{ label: 'Microsoft signing owner metadata', pattern: /['"]-o['"], ['"]Microsoft['"]|https:\/\/www\.microsoft\.com/i },
 	];
 
-	for (const { file, patterns } of scannedFiles) {
+	const scannedFiles = listFiles('build/azure-pipelines')
+		.filter(file => /\.(?:ts|js|mjs|yml|yaml|ps1|sh|json)$/i.test(file))
+		.sort();
+
+	for (const file of scannedFiles) {
 		const content = readText(file);
-		const matches = patterns.filter(({ pattern }) => pattern.test(content)).map(({ label }) => label);
+		const matches = releaseInfraPatterns.filter(({ pattern }) => pattern.test(content)).map(({ label }) => label);
 		if (matches.length) {
 			fail(`${file}: contains inherited Microsoft release infrastructure (${matches.join(', ')})`);
 		}
 	}
+}
+
+function listFiles(relativePath) {
+	const absolutePath = join(root, relativePath);
+	const entries = readdirSync(absolutePath, { withFileTypes: true });
+	const result = [];
+
+	for (const entry of entries) {
+		const entryRelativePath = `${relativePath}/${entry.name}`;
+		const entryAbsolutePath = join(root, entryRelativePath);
+		if (entry.isDirectory()) {
+			result.push(...listFiles(entryRelativePath));
+		} else if (entry.isFile() || statSync(entryAbsolutePath).isFile()) {
+			result.push(entryRelativePath);
+		}
+	}
+
+	return result;
 }
