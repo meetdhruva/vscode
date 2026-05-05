@@ -131,6 +131,13 @@ jobs:
           export CC_x86_64_unknown_linux_gnu="$VSCODE_SYSROOT_DIR/x86_64-linux-gnu/bin/x86_64-linux-gnu-gcc --sysroot=$VSCODE_SYSROOT_DIR/x86_64-linux-gnu/x86_64-linux-gnu/sysroot"
           export PKG_CONFIG_LIBDIR_x86_64_unknown_linux_gnu="$VSCODE_SYSROOT_DIR/x86_64-linux-gnu/x86_64-linux-gnu/sysroot/usr/lib/x86_64-linux-gnu/pkgconfig:$VSCODE_SYSROOT_DIR/x86_64-linux-gnu/x86_64-linux-gnu/sysroot/usr/share/pkgconfig"
           export PKG_CONFIG_SYSROOT_DIR_x86_64_unknown_linux_gnu="$VSCODE_SYSROOT_DIR/x86_64-linux-gnu/x86_64-linux-gnu/sysroot"
+          tmpdir="$(mktemp -d)"
+          npm pack @vscode/openssl-prebuilt --pack-destination "$tmpdir"
+          rm -rf cli/openssl
+          mkdir -p cli/openssl
+          tar -xzf "$tmpdir"/*.tgz -C cli/openssl
+          rm -rf "$tmpdir"
+          export OPENSSL_DIR="$PWD/cli/openssl/package/out/x64-linux"
           cargo build --release --manifest-path cli/Cargo.toml --target x86_64-unknown-linux-gnu --bin code
 
       - name: Compile and package client
