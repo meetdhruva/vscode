@@ -1,0 +1,33 @@
+parameters:
+  - name: artifactPaths
+    type: string
+  - name: includeSourceMaps
+    type: boolean
+    default: false
+
+steps:
+  - pwsh: |
+      $ErrorActionPreference = "Stop"
+
+      $artifactPathText = @'
+      ${{ parameters.artifactPaths }}
+      '@
+
+      $artifactPaths = @(
+        $artifactPathText -split '\r?\n' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+      )
+      if ($artifactPaths.Count -eq 0) {
+        throw "No Aster release artifact paths were configured for scanning."
+      }
+
+      $scanArgs = @("run", "aster:check-release-artifacts", "--") + $artifactPaths
+      if ("${{ parameters.includeSourceMaps }}" -ieq "true") {
+        $scanArgs += "--include-source-maps"
+      }
+
+      & npm @scanArgs
+      if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+      }
+    displayName: Scan Aster release artifacts
+    condition: and(succeeded(), eq(variables['VSCODE_PUBLISH'], 'true'))

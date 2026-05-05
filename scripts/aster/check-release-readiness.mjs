@@ -7,6 +7,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '../..');
+const allowExternalBlockers = process.argv.includes('--allow-external-blockers');
 const failures = [];
 
 const product = readJson('product.json');
@@ -37,9 +38,14 @@ checkReleasePipelineSelectionPolicy();
 checkBrandClearancePolicy();
 
 if (failures.length) {
+	const blockingFailures = allowExternalBlockers ? failures.filter(failure => !failure.external) : failures;
+	if (!blockingFailures.length) {
+		console.log(`Aster release-readiness guardrails passed (${failures.length} external blocker(s) remain)`);
+		process.exit(0);
+	}
 	console.error('Aster release-readiness check failed:');
-	for (const failure of failures) {
-		console.error(`- ${failure}`);
+	for (const failure of blockingFailures) {
+		console.error(`- ${failure.message}`);
 	}
 	process.exit(1);
 }
@@ -54,8 +60,12 @@ function readText(relativePath) {
 	return readFileSync(join(root, relativePath), 'utf8');
 }
 
-function fail(message) {
-	failures.push(message);
+function fail(message, options = {}) {
+	failures.push({ message, external: options.external === true });
+}
+
+function failExternal(message) {
+	fail(message, { external: true });
 }
 
 function checkWebviewAssetHost() {
@@ -82,7 +92,8 @@ function checkWebviewAssetHost() {
 	if (!baseHost) {
 		fail(`product.webviewContentExternalBaseUrlTemplate: expected shape https://{{uuid}}.<host>${webviewPreloadPathTemplate}`);
 	} else {
-		checkWebviewBaseHost('product.webviewContentExternalBaseUrlTemplate host', baseHost);
+		checkWebviewBaseHost('product.webviewContentExternalBaseUrlTemplate host', baseHost, { externalForbidden: true });
+		checkWebviewHostDomainApproval('product.webviewContentExternalBaseUrlTemplate host', baseHost);
 	}
 
 	const forbiddenPatterns = [
@@ -95,7 +106,7 @@ function checkWebviewAssetHost() {
 
 	for (const { label, pattern } of forbiddenPatterns) {
 		if (pattern.test(template)) {
-			fail(`product.webviewContentExternalBaseUrlTemplate: contains ${label}`);
+			failExternal(`product.webviewContentExternalBaseUrlTemplate: contains ${label}`);
 		}
 	}
 }
@@ -110,7 +121,7 @@ function checkWebviewRuntimeFallbacks() {
 	if (!defaultBaseHost) {
 		fail(`${defaultsFile}: missing defaultAsterWebviewResourceBaseHost`);
 	} else {
-		checkWebviewBaseHost(`${defaultsFile}: defaultAsterWebviewResourceBaseHost`, defaultBaseHost);
+		checkWebviewBaseHost(`${defaultsFile}: defaultAsterWebviewResourceBaseHost`, defaultBaseHost, { externalForbidden: true });
 		if (productBaseHost && defaultBaseHost !== productBaseHost) {
 			fail(`${defaultsFile}: default host ${defaultBaseHost} does not match product webview host ${productBaseHost}`);
 		}
@@ -122,6 +133,21 @@ function checkWebviewRuntimeFallbacks() {
 
 	if (!defaultsContent.includes('defaultAsterWebviewFrameSource = `https://*.${defaultAsterWebviewResourceBaseHost}`;')) {
 		fail(`${defaultsFile}: default webview frame source must derive from defaultAsterWebviewResourceBaseHost`);
+	}
+
+	const webviewCommon = readText('src/vs/workbench/contrib/webview/common/webview.ts');
+	if (!webviewCommon.includes('import { defaultAsterWebviewResourceBaseHost } from \'../../../../base/common/asterWebviewDefaults.js\';') || !webviewCommon.includes('export const webviewResourceBaseHost = defaultAsterWebviewResourceBaseHost;')) {
+		fail('src/vs/workbench/contrib/webview/common/webview.ts: webview resource host must derive from defaultAsterWebviewResourceBaseHost');
+	}
+
+	const environmentService = readText('src/vs/workbench/services/environment/browser/environmentService.ts');
+	if (!environmentService.includes('import { defaultAsterWebviewContentExternalBaseUrlTemplate } from \'../../../../base/common/asterWebviewDefaults.js\';') || !environmentService.includes('|| defaultAsterWebviewContentExternalBaseUrlTemplate')) {
+		fail('src/vs/workbench/services/environment/browser/environmentService.ts: browser webview fallback must derive from defaultAsterWebviewContentExternalBaseUrlTemplate');
+	}
+
+	const webClientServer = readText('src/vs/server/node/webClientServer.ts');
+	if (!webClientServer.includes('import { defaultAsterWebviewFrameSource } from \'../../base/common/asterWebviewDefaults.js\';') || !webClientServer.includes('${defaultAsterWebviewFrameSource}')) {
+		fail('src/vs/server/node/webClientServer.ts: server webview CSP must derive from defaultAsterWebviewFrameSource');
 	}
 
 	const placeholders = [
@@ -149,7 +175,7 @@ function checkWebviewRuntimeFallbacks() {
 
 	for (const { file, label, pattern } of placeholders) {
 		if (pattern.test(readText(file))) {
-			fail(`${file}: contains placeholder ${label}`);
+			failExternal(`${file}: contains placeholder ${label}`);
 		}
 	}
 }
@@ -161,7 +187,7 @@ function getWebviewTemplateBaseHost(template) {
 	return template.match(webviewContentExternalBaseUrlTemplatePattern)?.[1];
 }
 
-function checkWebviewBaseHost(label, baseHost) {
+function checkWebviewBaseHost(label, baseHost, options = {}) {
 	if (!/^[a-z0-9.-]+$/i.test(baseHost)) {
 		fail(`${label}: expected a DNS host suffix, found ${JSON.stringify(baseHost)}`);
 	}
@@ -185,9 +211,22 @@ function checkWebviewBaseHost(label, baseHost) {
 
 	for (const { label: forbiddenLabel, pattern } of forbiddenBaseHostPatterns) {
 		if (pattern.test(baseHost)) {
-			fail(`${label}: contains ${forbiddenLabel}`);
+			fail(`${label}: contains ${forbiddenLabel}`, { external: options.externalForbidden === true });
 		}
 	}
+}
+
+function checkWebviewHostDomainApproval(label, baseHost) {
+	const approvedPublicDomains = Array.isArray(brandClearance.approvedPublicDomains) ? brandClearance.approvedPublicDomains : [];
+	if (!approvedPublicDomains.some(domain => typeof domain === 'string' && isHostUnderDomain(baseHost, domain))) {
+		fail(`${label}: must be equal to or under an approvedPublicDomains entry in docs/aster-brand-clearance.json`, { external: approvedPublicDomains.length === 0 || brandClearance.status !== 'cleared' });
+	}
+}
+
+function isHostUnderDomain(host, domain) {
+	const normalizedHost = host.toLowerCase();
+	const normalizedDomain = domain.toLowerCase();
+	return normalizedHost === normalizedDomain || normalizedHost.endsWith(`.${normalizedDomain}`);
 }
 
 function countOccurrences(value, search) {
@@ -260,7 +299,7 @@ function checkReleaseInfrastructurePolicy() {
 		const content = readText(file);
 		const matches = releaseInfraPatterns.filter(({ pattern }) => pattern.test(content)).map(({ label }) => label);
 		if (matches.length) {
-			fail(`${file}: contains inherited Microsoft release infrastructure (${matches.join(', ')})`);
+			failExternal(`${file}: contains inherited Microsoft release infrastructure (${matches.join(', ')})`);
 		}
 	}
 }
@@ -269,6 +308,7 @@ function checkReleasePipelineSelectionPolicy() {
 	const productBuild = readText('build/azure-pipelines/product-build.yml');
 	const productPublish = readText('build/azure-pipelines/product-publish.yml');
 	const productRelease = readText('build/azure-pipelines/product-release.yml');
+	const artifactScanTemplate = readText('build/azure-pipelines/common/aster-release-artifact-scan.yml');
 
 	if (!/- name: VSCODE_PUBLISH\s+displayName: "Publish release artifacts"\s+type: boolean\s+default: false/m.test(productBuild)) {
 		fail('build/azure-pipelines/product-build.yml: VSCODE_PUBLISH must default to false for Aster until release infrastructure is owned');
@@ -297,9 +337,64 @@ function checkReleasePipelineSelectionPolicy() {
 	if (!/- name: ASTER_RELEASE_INFRA_CONFIRMED\s+type: boolean\s+default: false/.test(productRelease) || !/displayName: Block inherited release path/.test(productRelease)) {
 		fail('build/azure-pipelines/product-release.yml: direct template use must fail fast without ASTER_RELEASE_INFRA_CONFIRMED');
 	}
+
+	if (!/npm @scanArgs/.test(artifactScanTemplate) || !/aster:check-release-artifacts/.test(artifactScanTemplate)) {
+		fail('build/azure-pipelines/common/aster-release-artifact-scan.yml: must run the Aster release artifact scan');
+	}
+
+	if (!/condition: and\(succeeded\(\), eq\(variables\['VSCODE_PUBLISH'\], 'true'\)\)/.test(artifactScanTemplate)) {
+		fail('build/azure-pipelines/common/aster-release-artifact-scan.yml: artifact scan must gate publishing builds');
+	}
+
+	assertReleaseArtifactScanUse('build/azure-pipelines/linux/product-build-linux.yml', [
+		'$(Agent.BuildDirectory)/VSCode-linux-$(VSCODE_ARCH)',
+		'$(Agent.BuildDirectory)/vscode-server-linux-$(VSCODE_ARCH)',
+		'$(Agent.BuildDirectory)/vscode-server-linux-$(VSCODE_ARCH)-web',
+	]);
+	assertReleaseArtifactScanUse('build/azure-pipelines/win32/product-build-win32.yml', [
+		'$(Agent.BuildDirectory)\\VSCode-win32-$(VSCODE_ARCH)',
+		'$(Agent.BuildDirectory)\\vscode-server-win32-$(VSCODE_ARCH)',
+		'$(Agent.BuildDirectory)\\vscode-server-win32-$(VSCODE_ARCH)-web',
+	]);
+	assertReleaseArtifactScanUse('build/azure-pipelines/darwin/product-build-darwin.yml', [
+		'$(Build.ArtifactStagingDirectory)/VSCode-darwin-$(VSCODE_ARCH)',
+		'$(Agent.BuildDirectory)/vscode-server-darwin-$(VSCODE_ARCH)',
+		'$(Agent.BuildDirectory)/vscode-server-darwin-$(VSCODE_ARCH)-web',
+	]);
+	assertReleaseArtifactScanUse('build/azure-pipelines/web/product-build-web.yml', [
+		'$(Agent.BuildDirectory)/vscode-web',
+	]);
+	assertReleaseArtifactScanUse('build/azure-pipelines/alpine/product-build-alpine.yml', [
+		'$(SERVER_DIR_PATH)',
+		'$(WEB_DIR_PATH)',
+	]);
+	assertStandaloneWebUploadGates();
+}
+
+function assertReleaseArtifactScanUse(file, requiredPaths) {
+	const content = readText(file);
+	if (!content.includes('template: ../common/aster-release-artifact-scan.yml@self')) {
+		fail(`${file}: must include the Aster release artifact scan template before publishing artifacts`);
+	}
+	for (const artifactPath of requiredPaths) {
+		if (!content.includes(artifactPath)) {
+			fail(`${file}: Aster release artifact scan missing path ${artifactPath}`);
+		}
+	}
+}
+
+function assertStandaloneWebUploadGates() {
+	const file = 'build/azure-pipelines/web/product-build-web.yml';
+	const content = readText(file);
+	const publishGate = 'condition: and(succeeded(), eq(variables[\'VSCODE_PUBLISH\'], \'true\'))';
+	if (countOccurrences(content, publishGate) < 4) {
+		fail(`${file}: CDN, sourcemap, NLS, and secret-fetch upload steps must require VSCODE_PUBLISH`);
+	}
 }
 
 function checkBrandClearancePolicy() {
+	const brandClearancePending = brandClearance.status !== 'cleared';
+	const failBrandInput = message => fail(message, { external: brandClearancePending });
 	const requiredApprovals = [
 		'trademarkReview',
 		'productNames',
@@ -312,24 +407,32 @@ function checkBrandClearancePolicy() {
 	];
 
 	if (brandClearance.status !== 'cleared') {
-		fail(`docs/aster-brand-clearance.json: brand clearance status is ${JSON.stringify(brandClearance.status)}, expected "cleared" before public release`);
+		failBrandInput(`docs/aster-brand-clearance.json: brand clearance status is ${JSON.stringify(brandClearance.status)}, expected "cleared" before public release`);
 	}
 
 	if (!/^\d{4}-\d{2}-\d{2}$/.test(brandClearance.clearedOn ?? '')) {
-		fail('docs/aster-brand-clearance.json: missing clearedOn date in YYYY-MM-DD format');
+		failBrandInput('docs/aster-brand-clearance.json: missing clearedOn date in YYYY-MM-DD format');
+	} else if (!isValidIsoDate(brandClearance.clearedOn)) {
+		fail('docs/aster-brand-clearance.json: clearedOn must be a valid calendar date');
 	}
 
 	if (typeof brandClearance.decisionOwner !== 'string' || !brandClearance.decisionOwner || /pending|todo|tbd/i.test(brandClearance.decisionOwner)) {
-		fail('docs/aster-brand-clearance.json: missing non-placeholder decisionOwner');
+		failBrandInput('docs/aster-brand-clearance.json: missing non-placeholder decisionOwner');
 	}
 
 	if (!Array.isArray(brandClearance.approvedPublicDomains) || brandClearance.approvedPublicDomains.length === 0) {
-		fail('docs/aster-brand-clearance.json: approvedPublicDomains must list secured Aster-owned public domains');
+		failBrandInput('docs/aster-brand-clearance.json: approvedPublicDomains must list secured Aster-owned public domains');
+	} else {
+		for (const [index, domain] of brandClearance.approvedPublicDomains.entries()) {
+			checkApprovedPublicDomain(`docs/aster-brand-clearance.json: approvedPublicDomains[${index}]`, domain);
+		}
 	}
 
 	for (const approval of requiredApprovals) {
 		if (brandClearance.approvals?.[approval] !== true) {
-			fail(`docs/aster-brand-clearance.json: missing approval ${approval}`);
+			failBrandInput(`docs/aster-brand-clearance.json: missing approval ${approval}`);
+		} else if (!hasApprovalEvidence(approval)) {
+			fail(`docs/aster-brand-clearance.json: missing approvalEvidence.${approval}`);
 		}
 	}
 
@@ -346,6 +449,34 @@ function checkBrandClearancePolicy() {
 			fail(`docs/aster-brand-clearance.json: approvedAsterAiExtension.${key} must match extensions/copilot/package.json ${key}`);
 		}
 	}
+}
+
+function checkApprovedPublicDomain(label, domain) {
+	if (typeof domain !== 'string' || !domain) {
+		fail(`${label}: expected a public DNS domain`);
+		return;
+	}
+	if (domain !== domain.trim() || domain.startsWith('*.')) {
+		fail(`${label}: expected a bare secured domain, found ${JSON.stringify(domain)}`);
+		return;
+	}
+	checkWebviewBaseHost(label, domain);
+	if (/(?:^|\.)example\.(?:com|org|net)$/i.test(domain) || /(?:^|\.)microsoft\.com$|(?:^|\.)visualstudio\.com$|(?:^|\.)vscode\.dev$|(?:^|\.)github\.io$/i.test(domain)) {
+		fail(`${label}: expected an Aster-owned public domain, found ${JSON.stringify(domain)}`);
+	}
+}
+
+function hasApprovalEvidence(approval) {
+	const evidence = brandClearance.approvalEvidence?.[approval];
+	return Array.isArray(evidence) && evidence.some(item => typeof item === 'string' && item.trim() && !/pending|todo|tbd/i.test(item));
+}
+
+function isValidIsoDate(value) {
+	const [year, month, day] = value.split('-').map(Number);
+	const date = new Date(Date.UTC(year, month - 1, day));
+	return date.getUTCFullYear() === year
+		&& date.getUTCMonth() === month - 1
+		&& date.getUTCDate() === day;
 }
 
 function listFiles(relativePath) {

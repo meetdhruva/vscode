@@ -18,7 +18,9 @@ Release readiness reads `docs/aster-brand-clearance.json` and fails until the ma
 
 - `status` must stay `pending` until clearance is complete.
 - `approvedPublicDomains` must list secured Aster-owned domains.
+- The webview asset host in `product.json` must be equal to or under one of the secured `approvedPublicDomains` entries.
 - `approvedProductNames` must match `product.json`.
 - `approvedAsterAiExtension` must match `extensions/copilot/package.json`.
 - Every `approvals` entry must be `true`.
+- Every true `approvals` entry must have a matching non-placeholder `approvalEvidence` entry, such as a signed review record, legal ticket, approval URL, or asset/domain ownership record.
 - `decisionOwner` and `clearedOn` must refer to the real decision, not a placeholder.

@@ -219,3 +219,9 @@ jobs:
         env:
           GITHUB_TOKEN: "$(github-distro-mixin-password)"
         displayName: Build server (web)
+
+      - template: ../common/aster-release-artifact-scan.yml@self
+        parameters:
+          artifactPaths: |
+            $(SERVER_DIR_PATH)
+            $(WEB_DIR_PATH)

@@ -27,8 +27,10 @@ This checklist tracks release-facing productization items that cannot be validat
 
 - `npm run aster:check-runtime-assets` should stay fast and focused on runtime asset endpoints.
 - `npm run aster:check-compliance` should cover release-facing branding, product metadata, gallery configuration, hosted service endpoints, and known user-visible prompt surfaces.
+- `npm run aster:probe-webview-host -- --host <host> --quality <quality> --commit <commit> --uuid <test-uuid>` should pass against the release webview host before replacing the placeholder.
 - `npm run aster:check-release-artifacts -- <unpacked artifact paths...>` should run against unpacked desktop, server, web, and extension artifacts before publishing. Use `--include-source-maps` when source maps are shipped.
-- `npm run aster:check-release-readiness` should fail while placeholder webview hosts remain, brand clearance is pending, unapproved Microsoft-authored built-in extensions are present, or inherited Microsoft release/signing infrastructure remains wired into release pipeline files.
+- Publishing builds should run `build/azure-pipelines/common/aster-release-artifact-scan.yml` after desktop/server/web artifacts are assembled and before artifact publication. The step is gated by `VSCODE_PUBLISH` so ordinary non-publish product builds do not fail on release-only external inputs.
+- `npm run aster:check-release-readiness` should fail while placeholder webview hosts remain, brand clearance is pending, unapproved Microsoft-authored built-in extensions are present, artifact-scan pipeline hooks are missing, or inherited Microsoft release/signing infrastructure remains wired into release pipeline files.
 - Run the Aster checks in CI before compile-heavy jobs so productization regressions fail quickly.
 
 ## Pitfalls

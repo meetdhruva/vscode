@@ -33,8 +33,18 @@
 		"vsCodeCompatibilityWording": false,
 		"upstreamAttribution": false
 	},
+	"approvalEvidence": {
+		"trademarkReview": [],
+		"productNames": [],
+		"commandAndPackageNames": [],
+		"publicDomains": [],
+		"originalIconAssets": [],
+		"storeMetadata": [],
+		"vsCodeCompatibilityWording": [],
+		"upstreamAttribution": []
+	},
 	"notes": [
 		"Aster is a working name until this manifest is updated with real legal/product clearance evidence.",
-		"Do not set status to cleared until the approvals are true, public domains are secured, and the approved names match product.json and the bundled Aster AI extension manifest."
+		"Do not set status to cleared until the approvals are true, approval evidence is linked, public domains are secured, and the approved names match product.json and the bundled Aster AI extension manifest."
 	]
 }

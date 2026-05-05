@@ -20,6 +20,8 @@
     "aster:check-runtime-assets": "node scripts/aster/check-runtime-assets.mjs",
     "aster:check-release-artifacts": "node scripts/aster/check-release-artifacts.mjs",
     "aster:check-release-readiness": "node scripts/aster/check-release-readiness.mjs",
+    "aster:check-release-readiness-guardrails": "node scripts/aster/check-release-readiness.mjs --allow-external-blockers",
+    "aster:probe-webview-host": "node scripts/aster/probe-webview-host.mjs",
     "check-cyclic-dependencies": "node build/lib/checkCyclicDependencies.ts out",
     "preinstall": "node build/npm/preinstall.ts",
     "postinstall": "node build/npm/postinstall.ts",

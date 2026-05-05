@@ -24,6 +24,12 @@ The `{{uuid}}` token must be the leftmost host label. The `{{quality}}` and `{{c
 
 After DNS, TLS, and publishing are configured, verify the release commit with a test UUID subdomain:
 
+```sh
+npm run aster:probe-webview-host -- --host <host> --quality <quality> --commit <commit> --uuid <test-uuid>
+```
+
+The command probes:
+
 ```text
 https://<test-uuid>.<host>/<quality>/<commit>/out/vs/workbench/contrib/webview/browser/pre/index.html
 https://<test-uuid>.<host>/<quality>/<commit>/out/vs/workbench/contrib/webview/browser/pre/fake.html
