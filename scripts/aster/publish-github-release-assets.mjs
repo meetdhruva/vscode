@@ -10,12 +10,12 @@ import { basename, dirname, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
-const root = resolve(scriptDirectory, '../../..');
+const root = resolve(scriptDirectory, '../..');
 const options = parseArgs(process.argv.slice(2));
 const env = process.env;
 const dryRun = options.dryRun === true;
-const assetsRoot = resolve(root, options.assetsRoot ?? env.PIPELINE_WORKSPACE ?? env.BUILD_ARTIFACTSTAGINGDIRECTORY ?? '.');
-const repository = normalizeRepository(firstNonEmpty(options.repo, env.ASTER_GITHUB_RELEASE_REPOSITORY, env.GITHUB_REPOSITORY, getRepositoryFromBuildEnv(env)));
+const assetsRoot = resolve(root, options.assetsRoot ?? '.');
+const repository = normalizeRepository(firstNonEmpty(options.repo, env.ASTER_GITHUB_RELEASE_REPOSITORY, env.GITHUB_REPOSITORY));
 const token = firstNonEmpty(env.ASTER_GITHUB_RELEASE_TOKEN, env.GITHUB_TOKEN, env.GH_TOKEN);
 const product = await readJsonIfExists(resolve(root, 'product.json'));
 const packageJson = await readJsonIfExists(resolve(root, 'package.json'));
@@ -177,18 +177,8 @@ function normalizeRepository(value) {
 	return normalized;
 }
 
-function getRepositoryFromBuildEnv(buildEnv) {
-	if (buildEnv.BUILD_REPOSITORY_URI?.startsWith('https://github.com/')) {
-		return buildEnv.BUILD_REPOSITORY_URI.replace(/^https:\/\/github\.com\//, '').replace(/\.git$/, '');
-	}
-	if (buildEnv.BUILD_REPOSITORY_NAME?.includes('/')) {
-		return buildEnv.BUILD_REPOSITORY_NAME;
-	}
-	return undefined;
-}
-
 function getDefaultTag(buildEnv, packageJson) {
-	for (const ref of [buildEnv.BUILD_SOURCEBRANCH, buildEnv.GITHUB_REF]) {
+	for (const ref of [buildEnv.GITHUB_REF]) {
 		if (ref?.startsWith('refs/tags/')) {
 			return ref.slice('refs/tags/'.length);
 		}
@@ -198,7 +188,7 @@ function getDefaultTag(buildEnv, packageJson) {
 		return undefined;
 	}
 
-	const buildId = buildEnv.BUILD_BUILDID ?? buildEnv.GITHUB_RUN_NUMBER;
+	const buildId = buildEnv.GITHUB_RUN_NUMBER;
 	return buildId ? `v${packageJson.version}-${buildId}` : `v${packageJson.version}`;
 }
 
@@ -209,14 +199,14 @@ function getDefaultReleaseBody(buildEnv, { repository, tag, assets }) {
 		'Each uploaded artifact has SHA-1 and SHA-256 checksum sidecars.',
 	];
 
-	if (buildEnv.BUILD_BUILDNUMBER || buildEnv.BUILD_SOURCEVERSION) {
+	if (buildEnv.GITHUB_RUN_NUMBER || buildEnv.GITHUB_SHA) {
 		lines.push('');
 	}
-	if (buildEnv.BUILD_BUILDNUMBER) {
-		lines.push(`Azure Pipeline build: ${buildEnv.BUILD_BUILDNUMBER}`);
+	if (buildEnv.GITHUB_RUN_NUMBER) {
+		lines.push(`GitHub Actions run: ${buildEnv.GITHUB_RUN_NUMBER}`);
 	}
-	if (buildEnv.BUILD_SOURCEVERSION) {
-		lines.push(`Source commit: ${buildEnv.BUILD_SOURCEVERSION}`);
+	if (buildEnv.GITHUB_SHA) {
+		lines.push(`Source commit: ${buildEnv.GITHUB_SHA}`);
 	}
 
 	lines.push('', '## Downloads', '', '| File | Size | SHA-256 |', '| --- | ---: | --- |');
@@ -235,8 +225,8 @@ function getReleaseManifest(buildEnv, { repository, tag, releaseName, assets }) 
 		tag,
 		releaseName,
 		quality: buildEnv.VSCODE_QUALITY ?? null,
-		sourceVersion: buildEnv.BUILD_SOURCEVERSION ?? buildEnv.GITHUB_SHA ?? null,
-		buildNumber: buildEnv.BUILD_BUILDNUMBER ?? buildEnv.GITHUB_RUN_NUMBER ?? null,
+		sourceVersion: buildEnv.GITHUB_SHA ?? null,
+		buildNumber: buildEnv.GITHUB_RUN_NUMBER ?? null,
 		assets: assets.map(asset => ({
 			name: asset.name,
 			size: asset.size,

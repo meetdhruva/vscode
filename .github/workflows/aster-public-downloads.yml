@@ -75,4 +75,4 @@ jobs:
           else
             args+=(--no-prerelease)
           fi
-          node build/azure-pipelines/common/publish-github-release-assets.mjs "${args[@]}"
+          node scripts/aster/publish-github-release-assets.mjs "${args[@]}"

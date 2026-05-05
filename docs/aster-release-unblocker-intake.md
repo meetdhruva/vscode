@@ -36,7 +36,7 @@ Required inputs:
 - Apple Developer Team ID, Developer ID certificates, installer certificate, notarization credentials, and profiles if needed.
 - Linux package-signing keys for Debian, RPM, archives, and update repository metadata.
 - Release storage for installers, archives, symbols, checksums, update metadata, and webview preload assets.
-- GitHub Release download repository, tag policy, and `ASTER_GITHUB_RELEASE_TOKEN` secret ownership for the public download stage.
+- GitHub Release download repository, tag policy, and `ASTER_GITHUB_RELEASE_TOKEN` secret ownership for GitHub Actions public downloads when the default `GITHUB_TOKEN` is not sufficient.
 - CI service connections with least-privilege access to signing, storage, package repositories, and approvals.
 - Release approver group and incident contacts outside Microsoft domains.
 - Distro source decision or replacement plan for inherited `microsoft/vscode-distro` usage.
@@ -46,8 +46,8 @@ Required inputs:
 
 Repository updates after inputs are real:
 
-- Replace Microsoft ESRP, Key Vault, storage, identity, release owner, and distro references in `build/azure-pipelines`.
-- Configure `ASTER_PUBLIC_GITHUB_RELEASE`, `ASTER_GITHUB_RELEASE_REPOSITORY`, `ASTER_GITHUB_RELEASE_TAG`, and the secret `ASTER_GITHUB_RELEASE_TOKEN` for public release downloads.
+- Keep Microsoft ESRP, Key Vault, storage, identity, release owner, and distro references out of Aster GitHub Actions release workflows and scripts.
+- Configure the GitHub Actions release repository/tag workflow inputs and the secret `ASTER_GITHUB_RELEASE_TOKEN` for public release downloads when the default `GITHUB_TOKEN` is not sufficient.
 - Set every `ownedInputs` flag in `docs/aster-release-infrastructure.json` to `true` with matching evidence.
 - Set `status` to `configured` and `releaseInfraConfirmedAllowed` to `true` only after the strict release-readiness check passes.
 

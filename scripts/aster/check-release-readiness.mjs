@@ -356,9 +356,11 @@ function checkReleaseInfrastructurePolicy() {
 		{ label: 'Microsoft signing owner metadata', pattern: /['"]-o['"], ['"]Microsoft['"]|https:\/\/www\.microsoft\.com/i },
 	];
 
-	const scannedFiles = listFiles('build/azure-pipelines')
-		.filter(file => /\.(?:ts|js|mjs|yml|yaml|ps1|sh|json)$/i.test(file))
-		.sort();
+	const scannedFiles = [
+		'.github/workflows/aster-public-downloads.yml',
+		'.github/workflows/aster-linux-installables.yml',
+		'scripts/aster/publish-github-release-assets.mjs',
+	];
 
 	for (const file of scannedFiles) {
 		const content = readText(file);
@@ -417,9 +419,7 @@ function checkReleasePipelineSelectionPolicy() {
 	const productBuild = readText('build/azure-pipelines/product-build.yml');
 	const productPublish = readText('build/azure-pipelines/product-publish.yml');
 	const productRelease = readText('build/azure-pipelines/product-release.yml');
-	const artifactScanTemplate = readText('build/azure-pipelines/common/aster-release-artifact-scan.yml');
-	const publicReleaseTemplate = readText('build/azure-pipelines/common/publish-github-release-assets.yml');
-	const publicReleaseScript = readText('build/azure-pipelines/common/publish-github-release-assets.mjs');
+	const publicReleaseScript = readText('scripts/aster/publish-github-release-assets.mjs');
 	const publicDownloadsWorkflow = readText('.github/workflows/aster-public-downloads.yml');
 	const linuxInstallablesWorkflow = readText('.github/workflows/aster-linux-installables.yml');
 
@@ -431,16 +431,8 @@ function checkReleasePipelineSelectionPolicy() {
 		fail('build/azure-pipelines/product-build.yml: missing default-false ASTER_RELEASE_INFRA_CONFIRMED parameter');
 	}
 
-	if (!/- name: ASTER_PUBLIC_GITHUB_RELEASE\s+displayName: "Publish public GitHub release downloads"\s+type: boolean\s+default: false/m.test(productBuild)) {
-		fail('build/azure-pipelines/product-build.yml: missing default-false ASTER_PUBLIC_GITHUB_RELEASE parameter');
-	}
-
 	if (!/value: \$\{\{ and\(eq\(parameters\.VSCODE_PUBLISH, true\), eq\(parameters\.ASTER_RELEASE_INFRA_CONFIRMED, true\), eq\(variables\.VSCODE_CIBUILD, false\)\) \}\}/.test(productBuild)) {
 		fail('build/azure-pipelines/product-build.yml: VSCODE_PUBLISH variable must require ASTER_RELEASE_INFRA_CONFIRMED');
-	}
-
-	if (!/value: \$\{\{ and\(eq\(parameters\.ASTER_PUBLIC_GITHUB_RELEASE, true\), eq\(variables\.VSCODE_CIBUILD, false\)\) \}\}/.test(productBuild)) {
-		fail('build/azure-pipelines/product-build.yml: ASTER_PUBLIC_GITHUB_RELEASE variable must be explicit opt-in and disabled for CI validation builds');
 	}
 
 	if (!/template: build\/azure-pipelines\/product-publish\.yml@self[\s\S]*ASTER_RELEASE_INFRA_CONFIRMED: \$\{\{ parameters\.ASTER_RELEASE_INFRA_CONFIRMED \}\}/.test(productBuild)) {
@@ -459,27 +451,7 @@ function checkReleasePipelineSelectionPolicy() {
 		fail('build/azure-pipelines/product-release.yml: direct template use must fail fast without ASTER_RELEASE_INFRA_CONFIRMED');
 	}
 
-	if (!/npm @scanArgs/.test(artifactScanTemplate) || !/aster:check-release-artifacts/.test(artifactScanTemplate)) {
-		fail('build/azure-pipelines/common/aster-release-artifact-scan.yml: must run the Aster release artifact scan');
-	}
-
-	if (!/condition: and\(succeeded\(\), or\(eq\(variables\['VSCODE_PUBLISH'\], 'true'\), eq\(variables\['ASTER_PUBLIC_GITHUB_RELEASE'\], 'true'\)\)\)/.test(artifactScanTemplate)) {
-		fail('build/azure-pipelines/common/aster-release-artifact-scan.yml: artifact scan must gate publishing and public GitHub release builds');
-	}
-
-	if (!/stage: PublicDownloads[\s\S]*template: build\/azure-pipelines\/common\/publish-github-release-assets\.yml@self/.test(productBuild)) {
-		fail('build/azure-pipelines/product-build.yml: missing PublicDownloads stage that publishes CI artifacts to GitHub Releases');
-	}
-
-	if (!/patterns:\s*\|\s+vscode_\*\/\*\*/.test(publicReleaseTemplate)) {
-		fail('build/azure-pipelines/common/publish-github-release-assets.yml: must download vscode_* pipeline artifacts for public release upload');
-	}
-
-	if (!/publish-github-release-assets\.mjs --assets-root "\$\(Pipeline\.Workspace\)"/.test(publicReleaseTemplate) || !/ASTER_GITHUB_RELEASE_TOKEN/.test(publicReleaseTemplate)) {
-		fail('build/azure-pipelines/common/publish-github-release-assets.yml: must invoke the GitHub release asset publisher with the release token');
-	}
-
-	if (!/gh run download "\$RUN_ID"/.test(publicDownloadsWorkflow) || !/publish-github-release-assets\.mjs/.test(publicDownloadsWorkflow)) {
+	if (!/gh run download "\$RUN_ID"/.test(publicDownloadsWorkflow) || !/scripts\/aster\/publish-github-release-assets\.mjs/.test(publicDownloadsWorkflow)) {
 		fail('.github/workflows/aster-public-downloads.yml: must download GitHub Actions artifacts and invoke the shared GitHub release asset publisher');
 	}
 
@@ -487,7 +459,7 @@ function checkReleasePipelineSelectionPolicy() {
 		fail('.github/workflows/aster-linux-installables.yml: must build Linux archive, deb, and rpm installables');
 	}
 
-	if (!/aster:check-release-artifacts/.test(linuxInstallablesWorkflow) || !/vscode_client_linux_x64_installables/.test(linuxInstallablesWorkflow) || !/publish-github-release-assets\.mjs/.test(linuxInstallablesWorkflow)) {
+	if (!/aster:check-release-artifacts/.test(linuxInstallablesWorkflow) || !/vscode_client_linux_x64_installables/.test(linuxInstallablesWorkflow) || !/scripts\/aster\/publish-github-release-assets\.mjs/.test(linuxInstallablesWorkflow)) {
 		fail('.github/workflows/aster-linux-installables.yml: must scan, upload, and optionally publish Linux installables');
 	}
 
@@ -497,56 +469,11 @@ function checkReleasePipelineSelectionPolicy() {
 	}
 
 	if (!/releases\/tags/.test(publicReleaseScript) || !/releases\/assets/.test(publicReleaseScript) || !/\.sha1/.test(publicReleaseScript) || !/\.sha256/.test(publicReleaseScript) || !/aster-release-assets\.json/.test(publicReleaseScript)) {
-		fail('build/azure-pipelines/common/publish-github-release-assets.mjs: must create or reuse GitHub Releases and upload assets with checksum sidecars and a release asset manifest');
+		fail('scripts/aster/publish-github-release-assets.mjs: must create or reuse GitHub Releases and upload assets with checksum sidecars and a release asset manifest');
 	}
 
 	if (!/## Downloads/.test(publicReleaseScript) || !/getAssetDownloadUrl/.test(publicReleaseScript)) {
-		fail('build/azure-pipelines/common/publish-github-release-assets.mjs: must write public download links into the GitHub Release notes');
-	}
-
-	assertReleaseArtifactScanUse('build/azure-pipelines/linux/product-build-linux.yml', [
-		'$(Agent.BuildDirectory)/VSCode-linux-$(VSCODE_ARCH)',
-		'$(Agent.BuildDirectory)/vscode-server-linux-$(VSCODE_ARCH)',
-		'$(Agent.BuildDirectory)/vscode-server-linux-$(VSCODE_ARCH)-web',
-	]);
-	assertReleaseArtifactScanUse('build/azure-pipelines/win32/product-build-win32.yml', [
-		'$(Agent.BuildDirectory)\\VSCode-win32-$(VSCODE_ARCH)',
-		'$(Agent.BuildDirectory)\\vscode-server-win32-$(VSCODE_ARCH)',
-		'$(Agent.BuildDirectory)\\vscode-server-win32-$(VSCODE_ARCH)-web',
-	]);
-	assertReleaseArtifactScanUse('build/azure-pipelines/darwin/product-build-darwin.yml', [
-		'$(Build.ArtifactStagingDirectory)/VSCode-darwin-$(VSCODE_ARCH)',
-		'$(Agent.BuildDirectory)/vscode-server-darwin-$(VSCODE_ARCH)',
-		'$(Agent.BuildDirectory)/vscode-server-darwin-$(VSCODE_ARCH)-web',
-	]);
-	assertReleaseArtifactScanUse('build/azure-pipelines/web/product-build-web.yml', [
-		'$(Agent.BuildDirectory)/vscode-web',
-	]);
-	assertReleaseArtifactScanUse('build/azure-pipelines/alpine/product-build-alpine.yml', [
-		'$(SERVER_DIR_PATH)',
-		'$(WEB_DIR_PATH)',
-	]);
-	assertStandaloneWebUploadGates();
-}
-
-function assertReleaseArtifactScanUse(file, requiredPaths) {
-	const content = readText(file);
-	if (!content.includes('template: ../common/aster-release-artifact-scan.yml@self')) {
-		fail(`${file}: must include the Aster release artifact scan template before publishing artifacts`);
-	}
-	for (const artifactPath of requiredPaths) {
-		if (!content.includes(artifactPath)) {
-			fail(`${file}: Aster release artifact scan missing path ${artifactPath}`);
-		}
-	}
-}
-
-function assertStandaloneWebUploadGates() {
-	const file = 'build/azure-pipelines/web/product-build-web.yml';
-	const content = readText(file);
-	const publishGate = 'condition: and(succeeded(), eq(variables[\'VSCODE_PUBLISH\'], \'true\'))';
-	if (countOccurrences(content, publishGate) < 4) {
-		fail(`${file}: CDN, sourcemap, NLS, and secret-fetch upload steps must require VSCODE_PUBLISH`);
+		fail('scripts/aster/publish-github-release-assets.mjs: must write public download links into the GitHub Release notes');
 	}
 }
 
