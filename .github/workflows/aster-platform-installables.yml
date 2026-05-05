@@ -281,9 +281,11 @@ jobs:
           Push-Location extensions/copilot
           npm exec -- vsce package --out ../../.build/aster-copilot.vsix
           Pop-Location
-          7z.exe x .build/aster-copilot.vsix -o.build/aster-copilot-vsix -y
-          New-Item -ItemType Directory -Force .build/extensions/copilot | Out-Null
-          Get-ChildItem -Force .build/aster-copilot-vsix/extension | Move-Item -Destination .build/extensions/copilot
+          $VsixExtractPath = Join-Path $env:GITHUB_WORKSPACE ".build\aster-copilot-vsix"
+          $CopilotExtensionPath = Join-Path $env:GITHUB_WORKSPACE ".build\extensions\copilot"
+          7z.exe x .build\aster-copilot.vsix "-o$VsixExtractPath" -y
+          New-Item -ItemType Directory -Force $CopilotExtensionPath | Out-Null
+          Get-ChildItem -Force (Join-Path $VsixExtractPath "extension") | Move-Item -Destination $CopilotExtensionPath
           npm run gulp "vscode-win32-${{ env.VSCODE_ARCH }}-min-ci"
 
       - name: Scan release artifacts
