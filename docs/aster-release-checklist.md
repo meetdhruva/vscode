@@ -13,7 +13,7 @@ This checklist tracks release-facing productization items that cannot be validat
   The Azure release pipeline still references Microsoft ESRP, Azure subscriptions, Key Vaults, publisher names, release owners, distro mixins, and VS Code release metadata. Aster needs its own Windows code-signing certificate, Apple Developer Team ID/certificates/profiles/notarization credentials, Linux package signing keys, publishing storage, release approvers, distro source or replacement plan, and service connections before signed installers can be produced. The release-readiness check scans release pipeline files for inherited Microsoft release infrastructure and should keep failing until those inputs are replaced with Aster-owned infrastructure. Use [Aster Release Infrastructure Inputs](./aster-release-infrastructure-inputs.md) as the implementation checklist.
 
 - Complete trademark and name clearance.
-  `Aster` is a working name only. Public release needs trademark clearance, approved product names for app/package/store metadata, original icon assets, domain and website decisions, and legal review of any remaining "VS Code" compatibility wording.
+  `Aster` is a working name only. Public release needs trademark clearance, approved product names for app/package/store metadata, original icon assets, domain and website decisions, and legal review of any remaining "VS Code" compatibility wording. Use [Aster Brand Clearance](./aster-brand-clearance.md) and `docs/aster-brand-clearance.json` as the release-blocking evidence manifest.
 
 - Apply the namespace rebrand policy.
   The Aster AI extension manifest is rebranded, but command IDs, settings keys, context keys, storage keys, telemetry event names, and compatibility strings still use `github.copilot`/`copilot` namespaces. Use [Aster Namespace Policy](./aster-namespace-policy.md) to decide which IDs must remain for migration compatibility, which need Aster aliases, and which can be renamed before release.
@@ -27,7 +27,7 @@ This checklist tracks release-facing productization items that cannot be validat
 
 - `npm run aster:check-runtime-assets` should stay fast and focused on runtime asset endpoints.
 - `npm run aster:check-compliance` should cover release-facing branding, product metadata, gallery configuration, hosted service endpoints, and known user-visible prompt surfaces.
-- `npm run aster:check-release-readiness` should fail while placeholder webview hosts remain, unapproved Microsoft-authored built-in extensions are present, or inherited Microsoft release/signing infrastructure remains wired into release pipeline files.
+- `npm run aster:check-release-readiness` should fail while placeholder webview hosts remain, brand clearance is pending, unapproved Microsoft-authored built-in extensions are present, or inherited Microsoft release/signing infrastructure remains wired into release pipeline files.
 - Run the Aster checks in CI before compile-heavy jobs so productization regressions fail quickly.
 
 ## Pitfalls

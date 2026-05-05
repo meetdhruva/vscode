@@ -10,6 +10,8 @@ const root = resolve(import.meta.dirname, '../..');
 const failures = [];
 
 const product = readJson('product.json');
+const brandClearance = readJson('docs/aster-brand-clearance.json');
+const asterAiExtension = readJson('extensions/copilot/package.json');
 const webviewPreloadPathTemplate = '/{{quality}}/{{commit}}/out/vs/workbench/contrib/webview/browser/pre/';
 const webviewContentExternalBaseUrlTemplatePattern = /^https:\/\/\{\{uuid\}\}\.([^/?#]+)\/\{\{quality\}\}\/\{\{commit\}\}\/out\/vs\/workbench\/contrib\/webview\/browser\/pre\/$/;
 
@@ -32,6 +34,7 @@ checkWebviewRuntimeFallbacks();
 checkBundledExtensionPolicy();
 checkReleaseInfrastructurePolicy();
 checkReleasePipelineSelectionPolicy();
+checkBrandClearancePolicy();
 
 if (failures.length) {
 	console.error('Aster release-readiness check failed:');
@@ -293,6 +296,55 @@ function checkReleasePipelineSelectionPolicy() {
 
 	if (!/- name: ASTER_RELEASE_INFRA_CONFIRMED\s+type: boolean\s+default: false/.test(productRelease) || !/displayName: Block inherited release path/.test(productRelease)) {
 		fail('build/azure-pipelines/product-release.yml: direct template use must fail fast without ASTER_RELEASE_INFRA_CONFIRMED');
+	}
+}
+
+function checkBrandClearancePolicy() {
+	const requiredApprovals = [
+		'trademarkReview',
+		'productNames',
+		'commandAndPackageNames',
+		'publicDomains',
+		'originalIconAssets',
+		'storeMetadata',
+		'vsCodeCompatibilityWording',
+		'upstreamAttribution',
+	];
+
+	if (brandClearance.status !== 'cleared') {
+		fail(`docs/aster-brand-clearance.json: brand clearance status is ${JSON.stringify(brandClearance.status)}, expected "cleared" before public release`);
+	}
+
+	if (!/^\d{4}-\d{2}-\d{2}$/.test(brandClearance.clearedOn ?? '')) {
+		fail('docs/aster-brand-clearance.json: missing clearedOn date in YYYY-MM-DD format');
+	}
+
+	if (typeof brandClearance.decisionOwner !== 'string' || !brandClearance.decisionOwner || /pending|todo|tbd/i.test(brandClearance.decisionOwner)) {
+		fail('docs/aster-brand-clearance.json: missing non-placeholder decisionOwner');
+	}
+
+	if (!Array.isArray(brandClearance.approvedPublicDomains) || brandClearance.approvedPublicDomains.length === 0) {
+		fail('docs/aster-brand-clearance.json: approvedPublicDomains must list secured Aster-owned public domains');
+	}
+
+	for (const approval of requiredApprovals) {
+		if (brandClearance.approvals?.[approval] !== true) {
+			fail(`docs/aster-brand-clearance.json: missing approval ${approval}`);
+		}
+	}
+
+	const approvedProductNames = brandClearance.approvedProductNames ?? {};
+	for (const key of ['nameShort', 'nameLong', 'applicationName', 'serverApplicationName', 'tunnelApplicationName', 'win32DirName', 'win32NameVersion', 'win32RegValueName', 'win32AppUserModelId', 'darwinBundleIdentifier', 'linuxIconName', 'urlProtocol']) {
+		if (approvedProductNames[key] !== product[key]) {
+			fail(`docs/aster-brand-clearance.json: approvedProductNames.${key} must match product.${key}`);
+		}
+	}
+
+	const approvedAsterAiExtension = brandClearance.approvedAsterAiExtension ?? {};
+	for (const key of ['name', 'displayName', 'publisher', 'description']) {
+		if (approvedAsterAiExtension[key] !== asterAiExtension[key]) {
+			fail(`docs/aster-brand-clearance.json: approvedAsterAiExtension.${key} must match extensions/copilot/package.json ${key}`);
+		}
 	}
 }
 
