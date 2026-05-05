@@ -162,6 +162,8 @@ export function getBuiltInExtensions(): Promise<void> {
 	log('Synchronizing built-in extensions...');
 	log(`You can manage built-in extensions with the ${ansiColors.cyan('--builtin')} flag`);
 
+	fs.mkdirSync(path.join(root, '.build', 'builtInExtensions'), { recursive: true });
+
 	const control = readControlFile();
 	const streams: Stream[] = [];
 
