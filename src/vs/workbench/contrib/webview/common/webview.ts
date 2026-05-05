@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { CharCode } from '../../../../base/common/charCode.js';
+import { defaultAsterWebviewResourceBaseHost } from '../../../../base/common/asterWebviewDefaults.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { URI } from '../../../../base/common/uri.js';
 
@@ -18,7 +19,7 @@ export interface WebviewRemoteInfo {
  * This is hardcoded because we never expect to actually hit it. Instead these requests
  * should always go to a service worker.
  */
-export const webviewResourceBaseHost = 'aster-webview.invalid';
+export const webviewResourceBaseHost = defaultAsterWebviewResourceBaseHost;
 
 export const webviewRootResourceAuthority = `vscode-resource.${webviewResourceBaseHost}`;
 
@@ -31,7 +32,7 @@ export const webviewGenericCspSource = `'self' https://*.${webviewResourceBaseHo
  * we know where to load the resource from (remote or truly local):
  *
  * ```txt
- * ${scheme}+${resource-authority}.vscode-resource.aster-webview.invalid/${path}
+ * ${scheme}+${resource-authority}.vscode-resource.${webviewResourceBaseHost}/${path}
  * ```
  *
  * @param resource Uri of the resource to load.

@@ -70,6 +70,11 @@ function checkWebviewAssetHost() {
 function checkWebviewRuntimeFallbacks() {
 	const placeholders = [
 		{
+			file: 'src/vs/base/common/asterWebviewDefaults.ts',
+			label: 'central webview host defaults',
+			pattern: /aster-webview\.invalid/i,
+		},
+		{
 			file: 'src/vs/workbench/contrib/webview/common/webview.ts',
 			label: 'webview resource host',
 			pattern: /aster-webview\.invalid/i,
