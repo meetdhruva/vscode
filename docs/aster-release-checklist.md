@@ -27,6 +27,7 @@ This checklist tracks release-facing productization items that cannot be validat
 
 - `npm run aster:check-runtime-assets` should stay fast and focused on runtime asset endpoints.
 - `npm run aster:check-compliance` should cover release-facing branding, product metadata, gallery configuration, hosted service endpoints, and known user-visible prompt surfaces.
+- `npm run aster:check-release-artifacts -- <unpacked artifact paths...>` should run against unpacked desktop, server, web, and extension artifacts before publishing. Use `--include-source-maps` when source maps are shipped.
 - `npm run aster:check-release-readiness` should fail while placeholder webview hosts remain, brand clearance is pending, unapproved Microsoft-authored built-in extensions are present, or inherited Microsoft release/signing infrastructure remains wired into release pipeline files.
 - Run the Aster checks in CI before compile-heavy jobs so productization regressions fail quickly.
 
@@ -35,4 +36,4 @@ This checklist tracks release-facing productization items that cannot be validat
 - Do not treat copyright headers, copied upstream source comments, dependency names, or developer-only scripts as release branding failures.
 - Do not replace all `github.copilot.*` identifiers mechanically; many are persisted IDs or compatibility surfaces and need aliases or migrations.
 - Do not ship `.invalid` or localhost-like hosts as a "self-hosted" answer. The release scan must require a production Aster-owned host.
-- Do not rely on source scans alone. The final release scan should also run against packaged desktop, server, web, and extension artifacts.
+- Do not rely on source scans alone. The final release scan must run against unpacked desktop, server, web, and extension artifacts.

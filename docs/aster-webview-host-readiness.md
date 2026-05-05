@@ -30,4 +30,4 @@ https://<test-uuid>.<host>/<quality>/<commit>/out/vs/workbench/contrib/webview/b
 https://<test-uuid>.<host>/<quality>/<commit>/out/vs/workbench/contrib/webview/browser/pre/service-worker.js
 ```
 
-Each URL must return the assets for the exact commit being released. Packaged desktop, server, web, and extension artifacts should then be scanned for `aster-webview.invalid`, `vscode-cdn.net`, `web.core.windows.net`, `gallerycdn.vsassets.io`, and `vscode-unpkg.net`.
+Each URL must return the assets for the exact commit being released. Packaged desktop, server, web, and extension artifacts should then be scanned with `npm run aster:check-release-artifacts -- <unpacked artifact paths...>` for `aster-webview.invalid`, `vscode-cdn.net`, `web.core.windows.net`, `gallerycdn.vsassets.io`, and `vscode-unpkg.net`.

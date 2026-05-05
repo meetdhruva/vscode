@@ -18,6 +18,7 @@
     "test-build-scripts": "cd build && npm run test",
     "aster:check-compliance": "node scripts/aster/check-compliance.mjs",
     "aster:check-runtime-assets": "node scripts/aster/check-runtime-assets.mjs",
+    "aster:check-release-artifacts": "node scripts/aster/check-release-artifacts.mjs",
     "aster:check-release-readiness": "node scripts/aster/check-release-readiness.mjs",
     "check-cyclic-dependencies": "node build/lib/checkCyclicDependencies.ts out",
     "preinstall": "node build/npm/preinstall.ts",
