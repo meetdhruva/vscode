@@ -26,6 +26,12 @@ This document lists the external inputs required before Aster can produce public
 
 The check is expected to fail until these references are replaced with Aster-owned infrastructure. A passing source scan is necessary but not sufficient for a public release; final release validation must also inspect packaged desktop, server, web, and extension artifacts.
 
+## Pipeline Gate
+
+The inherited Azure product pipeline defaults release publishing off for Aster. `build/azure-pipelines/product-build.yml` requires both `VSCODE_PUBLISH: true` and `ASTER_RELEASE_INFRA_CONFIRMED: true` before the publish stage can be selected. `build/azure-pipelines/product-publish.yml` and `build/azure-pipelines/product-release.yml` also fail early when invoked directly without `ASTER_RELEASE_INFRA_CONFIRMED: true`.
+
+This gate is a safety interlock only. Do not set it to true until the ownership inputs above are real, tested, and documented.
+
 ## Replacement Pattern
 
 When the real infrastructure exists, replace inherited references with Aster-owned names and credentials rather than masking failures. Use descriptive environment variables and service connections such as:

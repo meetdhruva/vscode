@@ -31,6 +31,7 @@ checkWebviewAssetHost();
 checkWebviewRuntimeFallbacks();
 checkBundledExtensionPolicy();
 checkReleaseInfrastructurePolicy();
+checkReleasePipelineSelectionPolicy();
 
 if (failures.length) {
 	console.error('Aster release-readiness check failed:');
@@ -258,6 +259,40 @@ function checkReleaseInfrastructurePolicy() {
 		if (matches.length) {
 			fail(`${file}: contains inherited Microsoft release infrastructure (${matches.join(', ')})`);
 		}
+	}
+}
+
+function checkReleasePipelineSelectionPolicy() {
+	const productBuild = readText('build/azure-pipelines/product-build.yml');
+	const productPublish = readText('build/azure-pipelines/product-publish.yml');
+	const productRelease = readText('build/azure-pipelines/product-release.yml');
+
+	if (!/- name: VSCODE_PUBLISH\s+displayName: "Publish release artifacts"\s+type: boolean\s+default: false/m.test(productBuild)) {
+		fail('build/azure-pipelines/product-build.yml: VSCODE_PUBLISH must default to false for Aster until release infrastructure is owned');
+	}
+
+	if (!/- name: ASTER_RELEASE_INFRA_CONFIRMED\s+displayName: "Aster release infrastructure confirmed"\s+type: boolean\s+default: false/m.test(productBuild)) {
+		fail('build/azure-pipelines/product-build.yml: missing default-false ASTER_RELEASE_INFRA_CONFIRMED parameter');
+	}
+
+	if (!/value: \$\{\{ and\(eq\(parameters\.VSCODE_PUBLISH, true\), eq\(parameters\.ASTER_RELEASE_INFRA_CONFIRMED, true\), eq\(variables\.VSCODE_CIBUILD, false\)\) \}\}/.test(productBuild)) {
+		fail('build/azure-pipelines/product-build.yml: VSCODE_PUBLISH variable must require ASTER_RELEASE_INFRA_CONFIRMED');
+	}
+
+	if (!/template: build\/azure-pipelines\/product-publish\.yml@self[\s\S]*ASTER_RELEASE_INFRA_CONFIRMED: \$\{\{ parameters\.ASTER_RELEASE_INFRA_CONFIRMED \}\}/.test(productBuild)) {
+		fail('build/azure-pipelines/product-build.yml: product-publish.yml invocation must pass ASTER_RELEASE_INFRA_CONFIRMED');
+	}
+
+	if (!/template: build\/azure-pipelines\/product-release\.yml@self[\s\S]*ASTER_RELEASE_INFRA_CONFIRMED: \$\{\{ parameters\.ASTER_RELEASE_INFRA_CONFIRMED \}\}/.test(productBuild)) {
+		fail('build/azure-pipelines/product-build.yml: product-release.yml invocation must pass ASTER_RELEASE_INFRA_CONFIRMED');
+	}
+
+	if (!/- name: ASTER_RELEASE_INFRA_CONFIRMED\s+type: boolean\s+default: false/.test(productPublish) || !/displayName: Block inherited publish path/.test(productPublish)) {
+		fail('build/azure-pipelines/product-publish.yml: direct template use must fail fast without ASTER_RELEASE_INFRA_CONFIRMED');
+	}
+
+	if (!/- name: ASTER_RELEASE_INFRA_CONFIRMED\s+type: boolean\s+default: false/.test(productRelease) || !/displayName: Block inherited release path/.test(productRelease)) {
+		fail('build/azure-pipelines/product-release.yml: direct template use must fail fast without ASTER_RELEASE_INFRA_CONFIRMED');
 	}
 }
 
