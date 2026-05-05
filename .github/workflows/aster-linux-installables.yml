@@ -58,6 +58,8 @@ jobs:
           ./build/azure-pipelines/linux/apt-retry.sh sudo apt-get update
           ./build/azure-pipelines/linux/apt-retry.sh sudo apt-get install -y \
             fakeroot \
+            build-essential \
+            libssl-dev \
             libkrb5-dev \
             pkg-config \
             rpm \
@@ -66,6 +68,14 @@ jobs:
             libxkbfile-dev \
             libgbm1 \
             unzip
+
+      - name: Setup Rust
+        run: |
+          set -euo pipefail
+          rustup default 1.88
+          rustup target add x86_64-unknown-linux-gnu
+          rustc --version
+          cargo --version
 
       - name: Install build dependencies
         working-directory: build
@@ -108,6 +118,21 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: npm run download-builtin-extensions
 
+      - name: Build tunnel CLI
+        env:
+          CARGO_NET_GIT_FETCH_WITH_CLI: true
+          VSCODE_CLI_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          export VSCODE_SYSROOT_DIR="$PWD/.build/sysroots"
+          node -e 'import { getVSCodeSysroot } from "./build/linux/debian/install-sysroot.ts"; (async () => { await getVSCodeSysroot("amd64"); })()'
+          export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER="$VSCODE_SYSROOT_DIR/x86_64-linux-gnu/bin/x86_64-linux-gnu-gcc"
+          export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS="-C link-arg=--sysroot=$VSCODE_SYSROOT_DIR/x86_64-linux-gnu/x86_64-linux-gnu/sysroot -C link-arg=-L$VSCODE_SYSROOT_DIR/x86_64-linux-gnu/x86_64-linux-gnu/sysroot/usr/lib/x86_64-linux-gnu"
+          export CC_x86_64_unknown_linux_gnu="$VSCODE_SYSROOT_DIR/x86_64-linux-gnu/bin/x86_64-linux-gnu-gcc --sysroot=$VSCODE_SYSROOT_DIR/x86_64-linux-gnu/x86_64-linux-gnu/sysroot"
+          export PKG_CONFIG_LIBDIR_x86_64_unknown_linux_gnu="$VSCODE_SYSROOT_DIR/x86_64-linux-gnu/x86_64-linux-gnu/sysroot/usr/lib/x86_64-linux-gnu/pkgconfig:$VSCODE_SYSROOT_DIR/x86_64-linux-gnu/x86_64-linux-gnu/sysroot/usr/share/pkgconfig"
+          export PKG_CONFIG_SYSROOT_DIR_x86_64_unknown_linux_gnu="$VSCODE_SYSROOT_DIR/x86_64-linux-gnu/x86_64-linux-gnu/sysroot"
+          cargo build --release --manifest-path cli/Cargo.toml --target x86_64-unknown-linux-gnu --bin code
+
       - name: Compile and package client
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -126,6 +151,8 @@ jobs:
           npm run copy-policy-dto --prefix build
           node build/lib/policies/policyGenerator.ts build/lib/policies/policyData.jsonc linux
           npm run gulp "vscode-linux-${VSCODE_ARCH}-min-ci"
+          TUNNEL_APP_NAME="$(node -p "require('./product.json').tunnelApplicationName")"
+          install -m 755 "cli/target/x86_64-unknown-linux-gnu/release/code" "../VSCode-linux-${VSCODE_ARCH}/bin/${TUNNEL_APP_NAME}"
 
       - name: Build Linux packages
         run: |
