@@ -222,11 +222,13 @@ async function main() {
 
 	const policyDataFile = args._[0];
 	const platform = args._[1];
-	const [policies, translations] = await Promise.all([parsePolicies(policyDataFile), getTranslations()]);
+	const policies = await parsePolicies(policyDataFile);
 
 	if (platform === 'darwin') {
+		const translations = await getTranslations();
 		await darwinMain(policies, translations);
 	} else if (platform === 'win32') {
+		const translations = await getTranslations();
 		await windowsMain(policies, translations);
 	} else if (platform === 'linux') {
 		await linuxMain(policies);
