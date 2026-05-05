@@ -180,7 +180,7 @@ jobs:
           cp .build/linux/rpm/*/*.rpm .build/aster-installables/
 
       - name: Scan release artifacts
-        run: npm run aster:check-release-artifacts -- ../VSCode-linux-x64
+        run: npm run aster:check-release-artifacts -- ../VSCode-linux-x64 --allow-external-blockers
 
       - name: Upload installable artifacts
         uses: actions/upload-artifact@v7

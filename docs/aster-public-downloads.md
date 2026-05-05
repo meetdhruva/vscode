@@ -25,7 +25,7 @@ The stage runs `build/azure-pipelines/common/publish-github-release-assets.yml`,
 
 For GitHub-hosted artifacts, `.github/workflows/aster-public-downloads.yml` provides a manual VSCodium-style path: give it a workflow `run_id`, `artifact_pattern`, release repository, and release tag, and it downloads matching artifacts with `gh run download` before invoking the same publisher script.
 
-For a self-contained GitHub build, `.github/workflows/aster-linux-installables.yml` builds Linux x64 archive, deb, and rpm installables, scans the unpacked app with `npm run aster:check-release-artifacts`, uploads a `vscode_client_linux_x64_installables` workflow artifact, and can publish the same files to a GitHub Release in one run.
+For a self-contained GitHub build, `.github/workflows/aster-linux-installables.yml` builds Linux x64 archive, deb, and rpm installables, scans the unpacked app with `npm run aster:check-release-artifacts -- --allow-external-blockers`, uploads a `vscode_client_linux_x64_installables` workflow artifact, and can publish the same files to a GitHub Release in one run.
 
 The publisher creates or reuses the GitHub Release, uploads releasable files, adds checksum sidecars, updates the release notes with direct download links, and uploads `aster-release-assets.json` for programmatic consumers:
 

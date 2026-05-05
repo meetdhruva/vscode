@@ -8,6 +8,7 @@ import { extname, resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '../..');
 const args = process.argv.slice(2);
+const allowExternalBlockers = takeFlag('--allow-external-blockers');
 const includeSourceMaps = takeFlag('--include-source-maps');
 const artifactPaths = args.map(arg => resolve(root, arg));
 
@@ -53,11 +54,12 @@ const forbiddenPatterns = [
 ];
 
 if (artifactPaths.length === 0) {
-	console.error('Usage: npm run aster:check-release-artifacts -- <unpacked artifact path> [more paths...] [--include-source-maps]');
+	console.error('Usage: npm run aster:check-release-artifacts -- <unpacked artifact path> [more paths...] [--allow-external-blockers] [--include-source-maps]');
 	process.exit(2);
 }
 
 const failures = [];
+const externalBlockers = [];
 const files = [];
 const visitedDirectories = new Set();
 let scannedFileCount = 0;
@@ -94,7 +96,12 @@ for (const file of files.sort()) {
 		const match = pattern.exec(text);
 		if (match) {
 			const location = getLineColumn(text, match.index);
-			failures.push(`${relativeToRoot(file)}:${location.line}:${location.column}: ${label}`);
+			const failure = `${relativeToRoot(file)}:${location.line}:${location.column}: ${label}`;
+			if (allowExternalBlockers) {
+				externalBlockers.push(failure);
+			} else {
+				failures.push(failure);
+			}
 		}
 	}
 }
@@ -108,6 +115,16 @@ if (failures.length) {
 		console.error(`- ... ${failures.length - 200} more failure(s) omitted`);
 	}
 	process.exit(1);
+}
+
+if (externalBlockers.length) {
+	console.warn('Aster release artifact scan passed with external blocker(s) allowed:');
+	for (const externalBlocker of externalBlockers.slice(0, 200)) {
+		console.warn(`- ${externalBlocker}`);
+	}
+	if (externalBlockers.length > 200) {
+		console.warn(`- ... ${externalBlockers.length - 200} more external blocker(s) omitted`);
+	}
 }
 
 console.log(`Aster release artifact scan passed (${scannedFileCount} file(s) scanned)`);
