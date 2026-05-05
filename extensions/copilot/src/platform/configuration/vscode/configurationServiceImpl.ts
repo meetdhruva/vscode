@@ -134,6 +134,10 @@ export class ConfigurationServiceImpl extends AbstractConfigurationService {
 		return vscode.workspace.getConfiguration().get<T>(configKey);
 	}
 
+	override inspectNonExtensionConfig<T>(configKey: string): InspectConfigResult<T> | undefined {
+		return vscode.workspace.getConfiguration().inspect<T>(configKey);
+	}
+
 	private _getTargetFromInspect(inspect?: { key: string; workspaceValue?: unknown; workspaceFolderValue?: unknown }): vscode.ConfigurationTarget {
 		let target;
 		// When we get a config using this service, we have no idea which settings file it came from

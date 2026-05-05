@@ -7,10 +7,10 @@ import * as vscode from 'vscode';
 import { ConfigKey, IConfigurationService } from '../../../platform/configuration/common/configurationService';
 import { ILogService } from '../../../platform/log/common/logService';
 import { isNotebookCellOrNotebookChatInput } from '../../../util/common/notebooks';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { autorun } from '../../../util/vs/base/common/observableInternal';
+import { Disposable, DisposableStore, IDisposable, MutableDisposable } from '../../../util/vs/base/common/lifecycle';
 import { LanguageModelChatMessage } from '../../../vscodeTypes';
 import { IExtensionContribution } from '../../common/contributions';
+import { getAsterInlineCompletionsEnabled, getAsterInlineCompletionsModelId, getAsterInlineCompletionsVendor, isAsterInlineCompletionsConfigurationChange } from './asterInlineCompletionConfiguration';
 import { selectAsterInlineCompletionModel } from './asterInlineCompletionModelSelection';
 import { buildAsterInlineCompletionPrompt, isAsterInlineCompletionEnabledForLanguage, sanitizeAsterInlineCompletion } from './asterInlineCompletionPrompt';
 
@@ -19,33 +19,48 @@ const MAX_RESPONSE_CHARS = 8_000;
 
 export class AsterInlineCompletionsContribution extends Disposable implements IExtensionContribution {
 	public readonly id = 'aster-inline-completions';
+	private readonly _providerRegistration = this._register(new MutableDisposable<IDisposable>());
 
 	constructor(
-		@IConfigurationService configurationService: IConfigurationService,
-		@ILogService logService: ILogService,
+		@IConfigurationService private readonly _configurationService: IConfigurationService,
+		@ILogService private readonly _logService: ILogService,
 	) {
 		super();
 
-		this._register(autorun(reader => {
-			const enabled = configurationService.getConfigObservable(ConfigKey.AsterInlineCompletionsEnabled).read(reader);
-			if (!enabled) {
-				return;
+		this._updateProviderRegistration();
+		this._register(this._configurationService.onDidChangeConfiguration(event => {
+			if (isAsterInlineCompletionsConfigurationChange(event)) {
+				this._updateProviderRegistration();
 			}
-
-			const provider = new AsterInlineCompletionProvider(configurationService, logService);
-			reader.store.add(provider);
-			reader.store.add(vscode.languages.registerInlineCompletionItemProvider(
-				'*',
-				provider,
-				{
-					displayName: 'Aster BYOK Completions',
-					debounceDelayMs: 0,
-					yieldTo: ['nes'],
-					excludes: ['github.copilot', 'completions'],
-					groupId: ASTER_INLINE_COMPLETIONS_GROUP_ID,
-				}
-			));
 		}));
+	}
+
+	private _updateProviderRegistration(): void {
+		if (!getAsterInlineCompletionsEnabled(this._configurationService)) {
+			this._providerRegistration.clear();
+			return;
+		}
+
+		if (!this._providerRegistration.value) {
+			this._providerRegistration.value = this._registerInlineCompletionProvider();
+		}
+	}
+
+	private _registerInlineCompletionProvider(): IDisposable {
+		const store = new DisposableStore();
+		const provider = store.add(new AsterInlineCompletionProvider(this._configurationService, this._logService));
+		store.add(vscode.languages.registerInlineCompletionItemProvider(
+			'*',
+			provider,
+			{
+				displayName: 'Aster BYOK Completions',
+				debounceDelayMs: 0,
+				yieldTo: ['nes'],
+				excludes: ['github.copilot', 'completions'],
+				groupId: ASTER_INLINE_COMPLETIONS_GROUP_ID,
+			}
+		));
+		return store;
 	}
 }
 
@@ -125,14 +140,14 @@ export class AsterInlineCompletionProvider extends Disposable implements vscode.
 			return false;
 		}
 
-		return this._configurationService.getConfig(ConfigKey.AsterInlineCompletionsEnabled);
+		return getAsterInlineCompletionsEnabled(this._configurationService);
 	}
 
 	private async _selectModel(): Promise<vscode.LanguageModelChat | undefined> {
 		return selectAsterInlineCompletionModel(
 			selector => vscode.lm.selectChatModels(selector),
-			this._configurationService.getConfig(ConfigKey.AsterInlineCompletionsVendor),
-			this._configurationService.getConfig(ConfigKey.AsterInlineCompletionsModelId),
+			getAsterInlineCompletionsVendor(this._configurationService),
+			getAsterInlineCompletionsModelId(this._configurationService),
 		);
 	}
 }

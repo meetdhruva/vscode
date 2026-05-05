@@ -264,9 +264,9 @@ Enable inline completions after at least one BYOK model is configured:
 
 ```json
 {
-  "github.copilot.aster.inlineCompletions.enabled": true,
-  "github.copilot.aster.inlineCompletions.vendor": "customoai",
-  "github.copilot.aster.inlineCompletions.modelId": "model-id-used-by-the-endpoint"
+  "aster.ai.inlineCompletions.enabled": true,
+  "aster.ai.inlineCompletions.vendor": "customoai",
+  "aster.ai.inlineCompletions.modelId": "model-id-used-by-the-endpoint"
 }
 ```
 
@@ -277,6 +277,8 @@ customoai, openai, openrouter, ollama, anthropic, gemini, xai, azure
 ```
 
 Leave `vendor` empty to use the first available non-Copilot BYOK model. Leave `modelId` empty to use the first available model for the selected vendor.
+
+The legacy compatibility keys `github.copilot.aster.inlineCompletions.*` still work for existing users and tests. When both namespaces are configured, the `aster.ai.inlineCompletions.*` value wins.
 
 Inline completions also require editor inline suggestions to be enabled:
 
@@ -305,4 +307,4 @@ Language-level auto-triggering still follows the existing completion language se
 - Custom model returns endpoint errors: use an explicit `/chat/completions` or `/responses` URL if the provider does not follow the default OpenAI-compatible path.
 - Ollama models do not appear: confirm `ollama serve` is running and that the configured URL is reachable from Aster.
 - Azure errors before a request is sent: configure an API key or explicitly set `useMicrosoftAuthentication: true`.
-- Inline completions do not appear: enable `github.copilot.aster.inlineCompletions.enabled`, choose a BYOK `vendor`, confirm `editor.inlineSuggest.enabled`, and verify that the chosen model can answer normal chat requests first.
+- Inline completions do not appear: enable `aster.ai.inlineCompletions.enabled`, choose a BYOK `vendor`, confirm `editor.inlineSuggest.enabled`, and verify that the chosen model can answer normal chat requests first.

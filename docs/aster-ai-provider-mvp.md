@@ -17,7 +17,7 @@ Names rejected during the initial conflict check:
 - `Codara`: existing AI-native software development platform.
 - `Locus`: existing AI extension/engineering-tool conflicts found during the subagent branding pass.
 
-This is not a trademark clearance. Final branding still needs a dedicated legal/trademark review, original icon assets, package metadata review, and public-facing website/domain decisions. Release-facing blockers are tracked in [Aster Release Readiness Checklist](./aster-release-checklist.md).
+This is not a trademark clearance. Final branding still needs a dedicated legal/trademark review, original icon assets, package metadata review, and public-facing website/domain decisions. Release-facing blockers are tracked in [Aster Release Readiness Checklist](./aster-release-checklist.md), and inherited Copilot identifiers are governed by [Aster Namespace Policy](./aster-namespace-policy.md).
 
 ## Trunk-Based Delivery
 
@@ -45,6 +45,7 @@ Included:
 - Stop auto-enabling `GitHub.copilot-chat` from product metadata.
 - Apply first-pass Aster product identity metadata in `product.json`.
 - Add an off-by-default Aster inline completion provider backed by configured BYOK language models through the VS Code Language Model API.
+- Document namespace compatibility and migration rules in [Aster Namespace Policy](./aster-namespace-policy.md).
 
 Not included yet:
 

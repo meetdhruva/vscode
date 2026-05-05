@@ -120,6 +120,13 @@ export interface IConfigurationService {
 	getNonExtensionConfig<T>(configKey: string): T | undefined;
 
 	/**
+	 * Proxies vscode.workspace.getConfiguration().inspect to allow checking whether a configuration value
+	 * outside the Copilot namespace was explicitly configured instead of just contributed with a default.
+	 * @param configKey The config key to inspect
+	 */
+	inspectNonExtensionConfig<T>(configKey: string): InspectConfigResult<T> | undefined;
+
+	/**
 	 * Sets user configuration for a key in vscode.
 	 */
 	setConfig<T>(key: BaseConfig<T>, value: T): Thenable<void>;
@@ -262,6 +269,7 @@ export abstract class AbstractConfigurationService extends Disposable implements
 	abstract getConfig<T>(key: Config<T>, scope?: ConfigurationScope): T;
 	abstract inspectConfig<T>(key: BaseConfig<T>, scope?: ConfigurationScope): InspectConfigResult<T> | undefined;
 	abstract getNonExtensionConfig<T>(configKey: string): T | undefined;
+	abstract inspectNonExtensionConfig<T>(configKey: string): InspectConfigResult<T> | undefined;
 	abstract setConfig<T>(key: BaseConfig<T>, value: T): Thenable<void>;
 	abstract getExperimentBasedConfig<T extends ExperimentBasedConfigType>(key: ExperimentBasedConfig<T>, experimentationService: IExperimentationService): T;
 	abstract dumpConfig(): { [key: string]: string };

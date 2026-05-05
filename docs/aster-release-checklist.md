@@ -16,8 +16,8 @@ This checklist tracks release-facing productization items that cannot be validat
 - Complete trademark and name clearance.
   `Aster` is a working name only. Public release needs trademark clearance, approved product names for app/package/store metadata, original icon assets, domain and website decisions, and legal review of any remaining "VS Code" compatibility wording.
 
-- Finish the namespace rebrand policy.
-  The Aster AI extension manifest is rebranded, but command IDs, settings keys, context keys, storage keys, telemetry event names, and compatibility strings still use `github.copilot`/`copilot` namespaces. Decide which IDs must remain for migration compatibility, which need Aster aliases, and which can be renamed before release.
+- Apply the namespace rebrand policy.
+  The Aster AI extension manifest is rebranded, but command IDs, settings keys, context keys, storage keys, telemetry event names, and compatibility strings still use `github.copilot`/`copilot` namespaces. Use [Aster Namespace Policy](./aster-namespace-policy.md) to decide which IDs must remain for migration compatibility, which need Aster aliases, and which can be renamed before release.
 
 ## Guardrails To Keep Green
 
