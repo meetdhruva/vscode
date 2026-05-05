@@ -115,7 +115,12 @@ function checkWebviewRuntimeFallbacks() {
 }
 
 function checkBundledExtensionPolicy() {
-	const bundledExtensions = Array.isArray(product.builtInExtensions) ? product.builtInExtensions : [];
+	if (!Array.isArray(product.builtInExtensions)) {
+		fail('product.builtInExtensions: expected an explicit array, use [] when no marketplace extensions are bundled');
+		return;
+	}
+
+	const bundledExtensions = product.builtInExtensions;
 	const pendingPolicyExtensions = bundledExtensions.filter(extension => {
 		if (!isMicrosoftAuthoredBuiltInExtension(extension)) {
 			return false;
@@ -124,7 +129,7 @@ function checkBundledExtensionPolicy() {
 	});
 
 	if (pendingPolicyExtensions.length) {
-		fail(`product.builtInExtensions: Microsoft-authored bundled extension policy is unresolved for ${pendingPolicyExtensions.map(extension => extension.name).join(', ')}`);
+		fail(`product.builtInExtensions: unapproved Microsoft-authored bundled extension present for ${pendingPolicyExtensions.map(extension => extension.name).join(', ')}`);
 	}
 
 	for (const approval of approvedMicrosoftAuthoredBuiltInExtensions) {
