@@ -1,0 +1,78 @@
+name: Aster Public Downloads
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "GitHub Actions run ID containing vscode_* installable artifacts"
+        required: true
+        type: string
+      artifact_pattern:
+        description: "Artifact glob to download from the run"
+        required: true
+        default: "vscode_*"
+        type: string
+      release_repository:
+        description: "Target GitHub release repository (owner/repo); defaults to this repository"
+        required: false
+        type: string
+      release_tag:
+        description: "Target GitHub release tag"
+        required: true
+        type: string
+      release_name:
+        description: "Release display name"
+        required: false
+        type: string
+      prerelease:
+        description: "Mark the GitHub Release as a prerelease"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish:
+    name: Publish Public Downloads
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Download installable artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_PATTERN: ${{ inputs.artifact_pattern }}
+          RUN_ID: ${{ inputs.run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p .build/aster-public-downloads
+          gh run download "$RUN_ID" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$ARTIFACT_PATTERN" \
+            --dir .build/aster-public-downloads
+
+      - name: Publish GitHub release assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.ASTER_GITHUB_RELEASE_TOKEN || github.token }}
+          ASTER_GITHUB_RELEASE_REPOSITORY: ${{ inputs.release_repository || github.repository }}
+          ASTER_GITHUB_RELEASE_TAG: ${{ inputs.release_tag }}
+          ASTER_GITHUB_RELEASE_NAME: ${{ inputs.release_name }}
+        run: |
+          set -euo pipefail
+          args=(--assets-root .build/aster-public-downloads)
+          if [ "${{ inputs.prerelease }}" = "true" ]; then
+            args+=(--prerelease)
+          else
+            args+=(--no-prerelease)
+          fi
+          node build/azure-pipelines/common/publish-github-release-assets.mjs "${args[@]}"

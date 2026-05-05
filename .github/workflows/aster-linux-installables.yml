@@ -1,0 +1,170 @@
+name: Aster Linux Installables
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: "Publish installables to a GitHub Release after building"
+        required: true
+        default: false
+        type: boolean
+      release_repository:
+        description: "Target GitHub release repository (owner/repo); defaults to this repository"
+        required: false
+        type: string
+      release_tag:
+        description: "Target GitHub release tag; required when publish_release is true"
+        required: false
+        type: string
+      release_name:
+        description: "Release display name"
+        required: false
+        type: string
+      prerelease:
+        description: "Mark the GitHub Release as a prerelease"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  linux-x64:
+    name: Linux x64 Installables
+    runs-on: ubuntu-24.04
+    env:
+      NPM_ARCH: x64
+      VSCODE_ARCH: x64
+      VSCODE_QUALITY: stable
+      ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+      VSCODE_DISABLE_CDN_SOURCE_MAPS: 1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install system dependencies
+        run: |
+          set -euo pipefail
+          ./build/azure-pipelines/linux/apt-retry.sh sudo apt-get update
+          ./build/azure-pipelines/linux/apt-retry.sh sudo apt-get install -y \
+            fakeroot \
+            libkrb5-dev \
+            pkg-config \
+            rpm \
+            xvfb \
+            libgtk-3-0 \
+            libxkbfile-dev \
+            libgbm1
+
+      - name: Install build dependencies
+        working-directory: build
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for i in {1..5}; do
+            npm ci && break
+            if [ "$i" -eq 5 ]; then
+              echo "npm ci failed too many times" >&2
+              exit 1
+            fi
+            echo "npm ci failed on attempt $i; retrying"
+          done
+
+      - name: Install dependencies
+        env:
+          npm_config_arch: x64
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          source ./build/azure-pipelines/linux/setup-env.sh
+          for i in {1..5}; do
+            npm ci && break
+            if [ "$i" -eq 5 ]; then
+              echo "npm ci failed too many times" >&2
+              exit 1
+            fi
+            echo "npm ci failed on attempt $i; retrying"
+          done
+
+      - name: Download Electron
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: npm run electron -- x64
+
+      - name: Download built-in extensions
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: npm run download-builtin-extensions
+
+      - name: Compile and package client
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          npm run gulp core-ci
+          npm --prefix extensions/copilot run compile
+          npm run copy-policy-dto --prefix build
+          node build/lib/policies/policyGenerator.ts build/lib/policies/policyData.jsonc linux
+          npm run gulp "vscode-linux-${VSCODE_ARCH}-min-ci"
+
+      - name: Build Linux packages
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p "require('./package.json').version")"
+          mkdir -p .build/aster-installables
+
+          tar -czf ".build/aster-installables/aster-linux-x64-${VERSION}-${GITHUB_RUN_NUMBER}.tar.gz" -C .. VSCode-linux-x64
+
+          npm run gulp "vscode-linux-${VSCODE_ARCH}-prepare-deb"
+          npm run gulp "vscode-linux-${VSCODE_ARCH}-build-deb"
+          cp .build/linux/deb/*/deb/*.deb .build/aster-installables/
+
+          export VSCODE_SYSROOT_DIR="$PWD/.build/sysroots/glibc-2.28-gcc-10.5.0"
+          export STRIP="$VSCODE_SYSROOT_DIR/x86_64-linux-gnu/x86_64-linux-gnu/bin/strip"
+          npm run gulp "vscode-linux-${VSCODE_ARCH}-prepare-rpm"
+          npm run gulp "vscode-linux-${VSCODE_ARCH}-build-rpm"
+          cp .build/linux/rpm/*/*.rpm .build/aster-installables/
+
+      - name: Scan release artifacts
+        run: npm run aster:check-release-artifacts -- ../VSCode-linux-x64
+
+      - name: Upload installable artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: vscode_client_linux_x64_installables
+          path: .build/aster-installables/*
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub release assets
+        if: ${{ inputs.publish_release }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.ASTER_GITHUB_RELEASE_TOKEN || github.token }}
+          ASTER_GITHUB_RELEASE_REPOSITORY: ${{ inputs.release_repository || github.repository }}
+          ASTER_GITHUB_RELEASE_TAG: ${{ inputs.release_tag }}
+          ASTER_GITHUB_RELEASE_NAME: ${{ inputs.release_name }}
+        run: |
+          set -euo pipefail
+          if [ -z "$ASTER_GITHUB_RELEASE_TAG" ]; then
+            echo "release_tag is required when publish_release is true" >&2
+            exit 1
+          fi
+
+          args=(--assets-root .build/aster-installables)
+          if [ "${{ inputs.prerelease }}" = "true" ]; then
+            args+=(--prerelease)
+          else
+            args+=(--no-prerelease)
+          fi
+          node build/azure-pipelines/common/publish-github-release-assets.mjs "${args[@]}"

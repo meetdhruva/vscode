@@ -418,6 +418,10 @@ function checkReleasePipelineSelectionPolicy() {
 	const productPublish = readText('build/azure-pipelines/product-publish.yml');
 	const productRelease = readText('build/azure-pipelines/product-release.yml');
 	const artifactScanTemplate = readText('build/azure-pipelines/common/aster-release-artifact-scan.yml');
+	const publicReleaseTemplate = readText('build/azure-pipelines/common/publish-github-release-assets.yml');
+	const publicReleaseScript = readText('build/azure-pipelines/common/publish-github-release-assets.mjs');
+	const publicDownloadsWorkflow = readText('.github/workflows/aster-public-downloads.yml');
+	const linuxInstallablesWorkflow = readText('.github/workflows/aster-linux-installables.yml');
 
 	if (!/- name: VSCODE_PUBLISH\s+displayName: "Publish release artifacts"\s+type: boolean\s+default: false/m.test(productBuild)) {
 		fail('build/azure-pipelines/product-build.yml: VSCODE_PUBLISH must default to false for Aster until release infrastructure is owned');
@@ -427,8 +431,16 @@ function checkReleasePipelineSelectionPolicy() {
 		fail('build/azure-pipelines/product-build.yml: missing default-false ASTER_RELEASE_INFRA_CONFIRMED parameter');
 	}
 
+	if (!/- name: ASTER_PUBLIC_GITHUB_RELEASE\s+displayName: "Publish public GitHub release downloads"\s+type: boolean\s+default: false/m.test(productBuild)) {
+		fail('build/azure-pipelines/product-build.yml: missing default-false ASTER_PUBLIC_GITHUB_RELEASE parameter');
+	}
+
 	if (!/value: \$\{\{ and\(eq\(parameters\.VSCODE_PUBLISH, true\), eq\(parameters\.ASTER_RELEASE_INFRA_CONFIRMED, true\), eq\(variables\.VSCODE_CIBUILD, false\)\) \}\}/.test(productBuild)) {
 		fail('build/azure-pipelines/product-build.yml: VSCODE_PUBLISH variable must require ASTER_RELEASE_INFRA_CONFIRMED');
+	}
+
+	if (!/value: \$\{\{ and\(eq\(parameters\.ASTER_PUBLIC_GITHUB_RELEASE, true\), eq\(variables\.VSCODE_CIBUILD, false\)\) \}\}/.test(productBuild)) {
+		fail('build/azure-pipelines/product-build.yml: ASTER_PUBLIC_GITHUB_RELEASE variable must be explicit opt-in and disabled for CI validation builds');
 	}
 
 	if (!/template: build\/azure-pipelines\/product-publish\.yml@self[\s\S]*ASTER_RELEASE_INFRA_CONFIRMED: \$\{\{ parameters\.ASTER_RELEASE_INFRA_CONFIRMED \}\}/.test(productBuild)) {
@@ -451,8 +463,45 @@ function checkReleasePipelineSelectionPolicy() {
 		fail('build/azure-pipelines/common/aster-release-artifact-scan.yml: must run the Aster release artifact scan');
 	}
 
-	if (!/condition: and\(succeeded\(\), eq\(variables\['VSCODE_PUBLISH'\], 'true'\)\)/.test(artifactScanTemplate)) {
-		fail('build/azure-pipelines/common/aster-release-artifact-scan.yml: artifact scan must gate publishing builds');
+	if (!/condition: and\(succeeded\(\), or\(eq\(variables\['VSCODE_PUBLISH'\], 'true'\), eq\(variables\['ASTER_PUBLIC_GITHUB_RELEASE'\], 'true'\)\)\)/.test(artifactScanTemplate)) {
+		fail('build/azure-pipelines/common/aster-release-artifact-scan.yml: artifact scan must gate publishing and public GitHub release builds');
+	}
+
+	if (!/stage: PublicDownloads[\s\S]*template: build\/azure-pipelines\/common\/publish-github-release-assets\.yml@self/.test(productBuild)) {
+		fail('build/azure-pipelines/product-build.yml: missing PublicDownloads stage that publishes CI artifacts to GitHub Releases');
+	}
+
+	if (!/patterns:\s*\|\s+vscode_\*\/\*\*/.test(publicReleaseTemplate)) {
+		fail('build/azure-pipelines/common/publish-github-release-assets.yml: must download vscode_* pipeline artifacts for public release upload');
+	}
+
+	if (!/publish-github-release-assets\.mjs --assets-root "\$\(Pipeline\.Workspace\)"/.test(publicReleaseTemplate) || !/ASTER_GITHUB_RELEASE_TOKEN/.test(publicReleaseTemplate)) {
+		fail('build/azure-pipelines/common/publish-github-release-assets.yml: must invoke the GitHub release asset publisher with the release token');
+	}
+
+	if (!/gh run download "\$RUN_ID"/.test(publicDownloadsWorkflow) || !/publish-github-release-assets\.mjs/.test(publicDownloadsWorkflow)) {
+		fail('.github/workflows/aster-public-downloads.yml: must download GitHub Actions artifacts and invoke the shared GitHub release asset publisher');
+	}
+
+	if (!/vscode-linux-\$\{VSCODE_ARCH\}-min-ci/.test(linuxInstallablesWorkflow) || !/vscode-linux-\$\{VSCODE_ARCH\}-build-deb/.test(linuxInstallablesWorkflow) || !/vscode-linux-\$\{VSCODE_ARCH\}-build-rpm/.test(linuxInstallablesWorkflow)) {
+		fail('.github/workflows/aster-linux-installables.yml: must build Linux archive, deb, and rpm installables');
+	}
+
+	if (!/aster:check-release-artifacts/.test(linuxInstallablesWorkflow) || !/vscode_client_linux_x64_installables/.test(linuxInstallablesWorkflow) || !/publish-github-release-assets\.mjs/.test(linuxInstallablesWorkflow)) {
+		fail('.github/workflows/aster-linux-installables.yml: must scan, upload, and optionally publish Linux installables');
+	}
+
+	const vscodeGulpfile = readText('build/gulpfile.vscode.ts');
+	if (!/VSCODE_DISABLE_CDN_SOURCE_MAPS/.test(vscodeGulpfile) || countOccurrences(vscodeGulpfile, 'useCdnSourceMapsForPackagingTasks ? `${sourceMappingURLBase}/core` : undefined') < 3) {
+		fail('build/gulpfile.vscode.ts: public artifact builds must be able to disable Microsoft CDN source map links for desktop, server, and web bundles');
+	}
+
+	if (!/releases\/tags/.test(publicReleaseScript) || !/releases\/assets/.test(publicReleaseScript) || !/\.sha1/.test(publicReleaseScript) || !/\.sha256/.test(publicReleaseScript) || !/aster-release-assets\.json/.test(publicReleaseScript)) {
+		fail('build/azure-pipelines/common/publish-github-release-assets.mjs: must create or reuse GitHub Releases and upload assets with checksum sidecars and a release asset manifest');
+	}
+
+	if (!/## Downloads/.test(publicReleaseScript) || !/getAssetDownloadUrl/.test(publicReleaseScript)) {
+		fail('build/azure-pipelines/common/publish-github-release-assets.mjs: must write public download links into the GitHub Release notes');
 	}
 
 	assertReleaseArtifactScanUse('build/azure-pipelines/linux/product-build-linux.yml', [

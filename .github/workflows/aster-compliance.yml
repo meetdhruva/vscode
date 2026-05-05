@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - ".github/workflows/aster-compliance.yml"
+      - ".github/workflows/aster-linux-installables.yml"
+      - ".github/workflows/aster-public-downloads.yml"
       - "build/azure-pipelines/**"
       - "docs/aster-*.json"
       - "docs/aster-*.md"
@@ -30,6 +32,8 @@ on:
       - main
     paths:
       - ".github/workflows/aster-compliance.yml"
+      - ".github/workflows/aster-linux-installables.yml"
+      - ".github/workflows/aster-public-downloads.yml"
       - "build/azure-pipelines/**"
       - "docs/aster-*.json"
       - "docs/aster-*.md"

@@ -168,7 +168,7 @@ gulp.task(bundleVSCodeTask);
 
 const sourceMappingURLBase = `https://main.vscode-cdn.net/sourcemaps/${commit}`;
 const isCI = !!process.env['CI'] || !!process.env['BUILD_ARTIFACTSTAGINGDIRECTORY'] || !!process.env['GITHUB_WORKSPACE'];
-const useCdnSourceMapsForPackagingTasks = isCI;
+const useCdnSourceMapsForPackagingTasks = isCI && process.env['VSCODE_DISABLE_CDN_SOURCE_MAPS'] !== '1';
 const stripSourceMapsInPackagingTasks = isCI;
 const minifyVSCodeTask = task.define('minify-vscode', task.series(
 	bundleVSCodeTask,
@@ -197,9 +197,9 @@ gulp.task(task.define('core-ci', task.series(
 	task.define('esbuild-out-build', () => runEsbuildTranspile('out-build', false)),
 	// Then bundle for shipping (bundles also write NLS files to out-build)
 	task.parallel(
-		task.define('esbuild-vscode-min', () => runEsbuildBundle('out-vscode-min', true, true, 'desktop', `${sourceMappingURLBase}/core`)),
-		task.define('esbuild-vscode-reh-min', () => runEsbuildBundle('out-vscode-reh-min', true, true, 'server', `${sourceMappingURLBase}/core`)),
-		task.define('esbuild-vscode-reh-web-min', () => runEsbuildBundle('out-vscode-reh-web-min', true, true, 'server-web', `${sourceMappingURLBase}/core`)),
+		task.define('esbuild-vscode-min', () => runEsbuildBundle('out-vscode-min', true, true, 'desktop', useCdnSourceMapsForPackagingTasks ? `${sourceMappingURLBase}/core` : undefined)),
+		task.define('esbuild-vscode-reh-min', () => runEsbuildBundle('out-vscode-reh-min', true, true, 'server', useCdnSourceMapsForPackagingTasks ? `${sourceMappingURLBase}/core` : undefined)),
+		task.define('esbuild-vscode-reh-web-min', () => runEsbuildBundle('out-vscode-reh-web-min', true, true, 'server-web', useCdnSourceMapsForPackagingTasks ? `${sourceMappingURLBase}/core` : undefined)),
 	)
 )));
 

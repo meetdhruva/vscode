@@ -9,7 +9,7 @@ Release readiness reads `docs/aster-release-infrastructure.json` and fails until
 - Windows code-signing certificate and timestamping policy owned by Aster.
 - Apple Developer Team ID, Developer ID Application certificate, installer certificate, provisioning profiles if needed, notarization credentials, and app-specific passwords or API keys owned by Aster.
 - Linux package-signing keys for Debian, RPM, archive, and update repository metadata.
-- Release storage buckets or object containers for installers, archives, symbols, checksums, update metadata, and webview preload assets.
+- Release storage buckets or object containers for installers, archives, symbols, checksums, update metadata, and webview preload assets. The first public download surface is GitHub Release assets, configured through `ASTER_PUBLIC_GITHUB_RELEASE`, `ASTER_GITHUB_RELEASE_REPOSITORY`, `ASTER_GITHUB_RELEASE_TAG`, and the secret `ASTER_GITHUB_RELEASE_TOKEN`.
 - CI service connections with least-privilege access to signing, storage, package repositories, and release approval systems.
 - Release approver group and incident/contact ownership outside Microsoft domains.
 - Distro source or replacement plan for any private mixins previously provided by `microsoft/vscode-distro`.
@@ -30,7 +30,7 @@ The check is expected to fail until these references are replaced with Aster-own
 
 ## Pipeline Gate
 
-The inherited Azure product pipeline defaults release publishing off for Aster. `build/azure-pipelines/product-build.yml` requires both `VSCODE_PUBLISH: true` and `ASTER_RELEASE_INFRA_CONFIRMED: true` before the publish stage can be selected. `build/azure-pipelines/product-publish.yml` and `build/azure-pipelines/product-release.yml` also fail early when invoked directly without `ASTER_RELEASE_INFRA_CONFIRMED: true`.
+The inherited Azure product pipeline defaults release publishing off for Aster. `build/azure-pipelines/product-build.yml` requires both `VSCODE_PUBLISH: true` and `ASTER_RELEASE_INFRA_CONFIRMED: true` before the inherited publish stage can be selected. Public GitHub Release downloads are independently controlled by `ASTER_PUBLIC_GITHUB_RELEASE: true`; this path publishes CI artifacts from the current build and does not use the inherited Microsoft publish service. `build/azure-pipelines/product-publish.yml` and `build/azure-pipelines/product-release.yml` also fail early when invoked directly without `ASTER_RELEASE_INFRA_CONFIRMED: true`.
 
 This gate is a safety interlock only. Do not set it to true until the ownership inputs above are real, tested, and documented.
 
@@ -52,6 +52,7 @@ When the real infrastructure exists, replace inherited references with Aster-own
 - `ASTER_APPLE_NOTARIZATION_KEY_ID`
 - `ASTER_LINUX_PACKAGE_SIGNING_KEY`
 - `ASTER_RELEASE_STORAGE_ACCOUNT`
+- `ASTER_GITHUB_RELEASE_TOKEN`
 - `ASTER_RELEASE_APPROVERS`
 - `ASTER_DISTRO_SOURCE`
 

@@ -15,6 +15,9 @@ This checklist tracks release-facing productization items that cannot be validat
 - Replace Microsoft-owned signing and release credentials.
   The Azure release pipeline still references Microsoft ESRP, Azure subscriptions, Key Vaults, publisher names, release owners, distro mixins, and VS Code release metadata. Aster needs its own Windows code-signing certificate, Apple Developer Team ID/certificates/profiles/notarization credentials, Linux package signing keys, publishing storage, release approvers, distro source or replacement plan, service connections, and a configured `docs/aster-release-infrastructure.json` before signed installers can be produced. The release-readiness check scans release pipeline files for inherited Microsoft release infrastructure and should keep failing until those inputs are replaced with Aster-owned infrastructure. Use [Aster Release Infrastructure Inputs](./aster-release-infrastructure-inputs.md) as the implementation checklist.
 
+- Configure public download publishing.
+  Public installable downloads should be served from GitHub Release assets, following the VSCodium-style release asset pattern. The opt-in `PublicDownloads` stage downloads `vscode_*` CI artifacts, creates or reuses the configured GitHub Release, uploads installables, and attaches `.sha1` and `.sha256` sidecars. See [Aster Public Downloads](./aster-public-downloads.md). This is not a substitute for signing, package repositories, update metadata, or the release-infrastructure evidence manifest.
+
 - Complete trademark and name clearance.
   `Aster` is a working name only. Public release needs trademark clearance, approved product names for app/package/store metadata, original icon assets, domain and website decisions, and legal review of any remaining "VS Code" compatibility wording. Use [Aster Brand Clearance](./aster-brand-clearance.md) and `docs/aster-brand-clearance.json` as the release-blocking evidence manifest.
 
@@ -39,7 +42,7 @@ This checklist tracks release-facing productization items that cannot be validat
 - `npm run aster:check-compliance` should cover release-facing branding, product metadata, gallery configuration, hosted service endpoints, and known user-visible prompt surfaces.
 - `npm run aster:probe-webview-host -- --host <host> --quality <quality> --commit <commit> --uuid <test-uuid>` should pass against the release webview host before replacing the placeholder.
 - `npm run aster:check-release-artifacts -- <unpacked artifact paths...>` should run against unpacked desktop, server, web, and extension artifacts before publishing. Use `--include-source-maps` when source maps are shipped.
-- Publishing builds should run `build/azure-pipelines/common/aster-release-artifact-scan.yml` after desktop/server/web artifacts are assembled and before artifact publication. The step is gated by `VSCODE_PUBLISH` so ordinary non-publish product builds do not fail on release-only external inputs.
+- Publishing builds should run `build/azure-pipelines/common/aster-release-artifact-scan.yml` after desktop/server/web artifacts are assembled and before artifact publication. The step is gated by `VSCODE_PUBLISH` or `ASTER_PUBLIC_GITHUB_RELEASE` so ordinary non-publish product builds do not fail on release-only external inputs.
 - `npm run aster:check-release-readiness` should fail while placeholder webview hosts remain, brand clearance is pending, unapproved Microsoft-authored built-in extensions are present, artifact-scan pipeline hooks are missing, or inherited Microsoft release/signing infrastructure remains wired into release pipeline files.
 - Run the Aster checks in CI before compile-heavy jobs so productization regressions fail quickly.
 

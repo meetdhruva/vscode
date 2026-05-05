@@ -111,6 +111,22 @@ parameters:
     displayName: "Aster release infrastructure confirmed"
     type: boolean
     default: false
+  - name: ASTER_PUBLIC_GITHUB_RELEASE
+    displayName: "Publish public GitHub release downloads"
+    type: boolean
+    default: false
+  - name: ASTER_GITHUB_RELEASE_REPOSITORY
+    displayName: "Public GitHub release repository"
+    type: string
+    default: ''
+  - name: ASTER_GITHUB_RELEASE_TAG
+    displayName: "Public GitHub release tag"
+    type: string
+    default: ''
+  - name: ASTER_GITHUB_RELEASE_NAME
+    displayName: "Public GitHub release name"
+    type: string
+    default: ''
   - name: VSCODE_STEP_ON_IT
     displayName: "Skip tests"
     type: boolean
@@ -139,6 +155,8 @@ variables:
     value: ${{ or(and(in(variables['Build.Reason'], 'IndividualCI', 'BatchedCI'), not(startsWith(variables['Build.SourceBranch'], 'refs/heads/release/'))), eq(parameters.VSCODE_BUILD_TYPE, 'CI')) }}
   - name: ASTER_RELEASE_INFRA_CONFIRMED
     value: ${{ eq(parameters.ASTER_RELEASE_INFRA_CONFIRMED, true) }}
+  - name: ASTER_PUBLIC_GITHUB_RELEASE
+    value: ${{ and(eq(parameters.ASTER_PUBLIC_GITHUB_RELEASE, true), eq(variables.VSCODE_CIBUILD, false)) }}
   - name: VSCODE_PUBLISH
     value: ${{ and(eq(parameters.VSCODE_PUBLISH, true), eq(parameters.ASTER_RELEASE_INFRA_CONFIRMED, true), eq(variables.VSCODE_CIBUILD, false)) }}
   - name: VSCODE_SCHEDULEDBUILD
@@ -437,6 +455,43 @@ extends:
           dependsOn: []
           jobs:
             - template: build/azure-pipelines/web/product-build-web.yml@self
+
+      - ${{ if eq(variables['ASTER_PUBLIC_GITHUB_RELEASE'], true) }}:
+        - stage: PublicDownloads
+          displayName: Public GitHub Release Downloads
+          dependsOn:
+            - Quality
+            - Copilot
+            - ${{ if eq(variables['VSCODE_BUILD_STAGE_WINDOWS'], true) }}:
+              - Windows
+            - ${{ if eq(variables['VSCODE_BUILD_STAGE_LINUX'], true) }}:
+              - Linux
+            - ${{ if eq(variables['VSCODE_BUILD_STAGE_ALPINE'], true) }}:
+              - Alpine
+            - ${{ if eq(variables['VSCODE_BUILD_STAGE_MACOS'], true) }}:
+              - macOS
+            - ${{ if eq(variables['VSCODE_BUILD_STAGE_WEB'], true) }}:
+              - Web
+          pool:
+            name: 1es-ubuntu-22.04-x64
+            os: linux
+          jobs:
+            - job: PublishGitHubReleaseAssets
+              displayName: Publish GitHub release assets
+              timeoutInMinutes: 60
+              steps:
+                - template: build/azure-pipelines/common/checkout.yml@self
+
+                - task: NodeTool@0
+                  inputs:
+                    versionSource: fromFile
+                    versionFilePath: .nvmrc
+
+                - template: build/azure-pipelines/common/publish-github-release-assets.yml@self
+                  parameters:
+                    repository: ${{ parameters.ASTER_GITHUB_RELEASE_REPOSITORY }}
+                    tag: ${{ parameters.ASTER_GITHUB_RELEASE_TAG }}
+                    releaseName: ${{ parameters.ASTER_GITHUB_RELEASE_NAME }}
 
       - ${{ if eq(variables['VSCODE_PUBLISH'], true) }}:
         - stage: Publish

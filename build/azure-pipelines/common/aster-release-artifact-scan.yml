@@ -30,4 +30,4 @@ steps:
         exit $LASTEXITCODE
       }
     displayName: Scan Aster release artifacts
-    condition: and(succeeded(), eq(variables['VSCODE_PUBLISH'], 'true'))
+    condition: and(succeeded(), or(eq(variables['VSCODE_PUBLISH'], 'true'), eq(variables['ASTER_PUBLIC_GITHUB_RELEASE'], 'true')))
