@@ -28,6 +28,7 @@ const approvedMicrosoftAuthoredBuiltInExtensions = [
 checkWebviewAssetHost();
 checkWebviewRuntimeFallbacks();
 checkBundledExtensionPolicy();
+checkReleaseInfrastructurePolicy();
 
 if (failures.length) {
 	console.error('Aster release-readiness check failed:');
@@ -151,4 +152,57 @@ function isMatchingBuiltInExtensionApproval(extension, approval) {
 		&& extension.version === approval.version
 		&& extension.sha256 === approval.sha256
 		&& extension.repo === approval.repo;
+}
+
+function checkReleaseInfrastructurePolicy() {
+	const scannedFiles = [
+		{
+			file: 'build/azure-pipelines/common/sign.ts',
+			patterns: [
+				{ label: 'ESRP signing service', pattern: /ESRP|api\.esrp\.microsoft\.com/i },
+				{ label: 'Microsoft timestamp service', pattern: /rfc3161\.gtm\.corp\.microsoft\.com/i },
+				{ label: 'VS Code signing metadata', pattern: /OpusName['"], parameterValue: ['"]VS Code/i },
+				{ label: 'Microsoft signing owner metadata', pattern: /['"]-o['"], ['"]Microsoft['"]|https:\/\/www\.microsoft\.com/i },
+			],
+		},
+		{
+			file: 'build/azure-pipelines/common/publish.ts',
+			patterns: [
+				{ label: 'ESRP release service', pattern: /ESRPReleaseService|api\.esrp\.microsoft\.com/i },
+				{ label: 'Microsoft identity authority', pattern: /login\.microsoftonline\.com/i },
+				{ label: 'Microsoft release owners', pattern: /@microsoft\.com/i },
+				{ label: 'VS Code release metadata', pattern: /title: ['"]VS Code['"]|name: ['"]VS Code['"]|description: ['"]VS Code['"]/i },
+			],
+		},
+		{
+			file: 'build/azure-pipelines/distro/download-distro.yml',
+			patterns: [
+				{ label: 'Microsoft Azure Key Vault', pattern: /AzureKeyVault|vscode-build-secrets/i },
+				{ label: 'Microsoft vscode-distro source', pattern: /microsoft\/vscode-distro|microsoft-vscode-distro/i },
+			],
+		},
+		{
+			file: 'build/azure-pipelines/product-build.yml',
+			patterns: [
+				{ label: 'Microsoft download endpoint', pattern: /vscode\.download\.prss\.microsoft\.com/i },
+				{ label: 'Microsoft ESRP variables', pattern: /VSCODE_ESRP_|ESRP_CLIENT_ID|ESRP_TENANT_ID/i },
+				{ label: 'Microsoft vscode-distro source', pattern: /microsoft\/vscode-distro/i },
+			],
+		},
+		{
+			file: 'build/azure-pipelines/product-publish.yml',
+			patterns: [
+				{ label: 'Microsoft Azure Key Vault', pattern: /AzureKeyVault|vscode-build-secrets|vscode-esrp/i },
+				{ label: 'Microsoft ESRP release credentials', pattern: /ESRP_CLIENT_ID|ESRP_TENANT_ID/i },
+			],
+		},
+	];
+
+	for (const { file, patterns } of scannedFiles) {
+		const content = readText(file);
+		const matches = patterns.filter(({ pattern }) => pattern.test(content)).map(({ label }) => label);
+		if (matches.length) {
+			fail(`${file}: contains inherited Microsoft release infrastructure (${matches.join(', ')})`);
+		}
+	}
 }
