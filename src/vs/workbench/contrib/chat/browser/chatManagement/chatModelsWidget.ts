@@ -1083,7 +1083,7 @@ export class ChatModelsWidget extends Disposable {
 		}));
 		this._register(this.languageModelsService.onDidChangeLanguageModelVendors(() => this.updateAddModelsButton()));
 		this._register(this.contextKeyService.onDidChangeContext(e => {
-			if (e.affectsSome(new Set(['github.copilot.clientByokEnabled']))) {
+			if (e.affectsSome(new Set(['github.copilot.clientByokEnabled', 'aster.ai.byok.providersAvailable']))) {
 				this.updateAddModelsButton();
 			}
 		}));
@@ -1393,7 +1393,8 @@ export class ChatModelsWidget extends Disposable {
 
 		const entitlement = this.chatEntitlementService.entitlement;
 		const isManagedEntitlement = entitlement === ChatEntitlement.Business || entitlement === ChatEntitlement.Enterprise;
-		const supportsAddingModels = this.chatEntitlementService.isInternal
+		const supportsAddingModels = this.contextKeyService.getContextKeyValue<boolean>('aster.ai.byok.providersAvailable') === true
+			|| this.chatEntitlementService.isInternal
 			|| (isManagedEntitlement && this.chatEntitlementService.clientByokEnabled)
 			|| (entitlement !== ChatEntitlement.Unknown
 				&& entitlement !== ChatEntitlement.Available

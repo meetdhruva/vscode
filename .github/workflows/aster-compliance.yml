@@ -72,6 +72,9 @@ jobs:
       - name: Check Aster metadata compliance
         run: npm run aster:check-compliance
 
+      - name: Check Aster BYOK activation
+        run: npm run aster:check-byok-activation
+
       - name: Check Aster runtime assets
         run: npm run aster:check-runtime-assets
 

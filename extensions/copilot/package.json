@@ -5062,17 +5062,17 @@
 			"editor/context": [
 				{
 					"command": "github.copilot.chat.fix",
-					"when": "!github.copilot.interactiveSession.disabled && chatSetupCompleted && !editorReadonly && editorSelectionHasDiagnostics",
+					"when": "!github.copilot.interactiveSession.disabled && (chatSetupCompleted || aster.ai-chat.activated) && !editorReadonly && editorSelectionHasDiagnostics",
 					"group": "1_chat@4"
 				},
 				{
 					"command": "github.copilot.chat.explain",
-					"when": "!github.copilot.interactiveSession.disabled && chatSetupCompleted",
+					"when": "!github.copilot.interactiveSession.disabled && (chatSetupCompleted || aster.ai-chat.activated)",
 					"group": "1_chat@5"
 				},
 				{
 					"command": "github.copilot.chat.review",
-					"when": "config.github.copilot.chat.reviewSelection.enabled && !github.copilot.interactiveSession.disabled && chatSetupCompleted && resourceScheme != 'vscode-chat-code-block'",
+					"when": "config.github.copilot.chat.reviewSelection.enabled && !github.copilot.interactiveSession.disabled && (chatSetupCompleted || aster.ai-chat.activated) && resourceScheme != 'vscode-chat-code-block'",
 					"group": "1_chat@6"
 				},
 				{
@@ -5761,7 +5761,7 @@
 			"scm/resourceState/context": [
 				{
 					"command": "github.copilot.git.resolveMergeConflicts",
-					"when": "scmProvider == git && scmResourceGroup == merge && git.activeResourceHasMergeConflicts",
+					"when": "scmProvider == git && scmResourceGroup == merge && git.activeResourceHasMergeConflicts && (chatSetupCompleted || aster.ai-chat.activated)",
 					"group": "z_chat@1"
 				},
 				{
@@ -5778,7 +5778,7 @@
 			"scm/inputBox": [
 				{
 					"command": "github.copilot.git.generateCommitMessage",
-					"when": "scmProvider == git && chatSetupCompleted"
+					"when": "scmProvider == git && (chatSetupCompleted || aster.ai-chat.activated)"
 				}
 			],
 			"testing/message/context": [
@@ -5851,7 +5851,7 @@
 				{
 					"command": "github.copilot.git.resolveMergeConflicts",
 					"group": "z_chat@1",
-					"when": "config.git.enabled && !git.missing && !isInDiffEditor && !isMergeEditor && resource in git.mergeChanges && git.activeResourceHasMergeConflicts && chatSetupCompleted"
+					"when": "config.git.enabled && !git.missing && !isInDiffEditor && !isMergeEditor && resource in git.mergeChanges && git.activeResourceHasMergeConflicts && (chatSetupCompleted || aster.ai-chat.activated)"
 				}
 			],
 			"multiDiffEditor/content": [

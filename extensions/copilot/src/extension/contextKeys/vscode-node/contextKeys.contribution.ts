@@ -2,7 +2,7 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import { commands, extensions, window } from 'vscode';
+import { commands, extensions, lm, window } from 'vscode';
 import { IAuthenticationService, MinimalModeError } from '../../../platform/authentication/common/authentication';
 import { ContactSupportError, EnterpriseManagedError, GitHubLoginFailedError, InvalidTokenError, NotSignedUpError, RateLimitedError, SubscriptionExpiredError } from '../../../platform/authentication/vscode-node/copilotTokenManager';
 import { SESSION_LOGIN_MESSAGE } from '../../../platform/authentication/vscode-node/session';
@@ -16,6 +16,7 @@ import { Disposable } from '../../../util/vs/base/common/lifecycle';
 import { autorun } from '../../../util/vs/base/common/observableInternal';
 import { GHPR_EXTENSION_ID } from '../../chatSessions/vscode/chatSessionsUriHandler';
 import { EXTENSION_ID } from '../../common/constants';
+import { hasAsterBYOKChatModel } from '../../byok/vscode-node/byokLanguageModels';
 
 const welcomeViewContextKeys = {
 	Activated: 'aster.ai-chat.activated',
@@ -37,6 +38,8 @@ const debugReportFeedbackContextKey = 'github.copilot.debugReportFeedback';
 const previewFeaturesDisabledContextKey = 'github.copilot.previewFeaturesDisabled';
 
 const clientByokEnabledContextKey = 'github.copilot.clientByokEnabled';
+const asterByokProvidersAvailableContextKey = 'aster.ai.byok.providersAvailable';
+const asterByokConfiguredContextKey = 'aster.ai.byok.configured';
 
 const debugContextKey = 'github.copilot.chat.debug';
 
@@ -66,7 +69,13 @@ export class ContextKeysContribution extends Disposable {
 		void this._inspectContext().catch(console.error);
 		void this._updatePermissiveSessionContext().catch(console.error);
 		void this._updateClientByokEnabledContext().catch(console.error);
+		void this._updateAsterByokContext().catch(console.error);
 		this._register(_authenticationService.onDidAuthenticationChange(async () => await this._onAuthenticationChange()));
+		this._register(lm.onDidChangeChatModels(() => {
+			void this._inspectContext().catch(console.error);
+			void this._updateClientByokEnabledContext().catch(console.error);
+			void this._updateAsterByokContext().catch(console.error);
+		}));
 		this._register(commands.registerCommand('github.copilot.refreshToken', async () => await this._inspectContext()));
 		this._register(commands.registerCommand('github.copilot.debug.showChatLogView', async () => {
 			this._showLogView = true;
@@ -131,19 +140,25 @@ export class ContextKeysContribution extends Disposable {
 		const allKeys = Object.values(welcomeViewContextKeys);
 		let error: unknown | undefined = undefined;
 		let key: string | undefined;
-		try {
-			await this._authenticationService.getCopilotToken();
+
+		const hasBYOKModel = await hasAsterBYOKChatModel();
+		if (hasBYOKModel) {
 			key = welcomeViewContextKeys.Activated;
-		} catch (e: any) {
-			error = e;
-			const reason = e.message || e;
-			const data = TelemetryData.createAndMarkAsIssued({ reason });
-			this._telemetryService.sendGHTelemetryErrorEvent('activationFailed', data.properties, data.measurements);
-			const message =
-				reason === 'GitHubLoginFailed'
-					? SESSION_LOGIN_MESSAGE
-					: `Aster AI could not connect to server. Extension activation failed: "${reason}"`;
-			this._logService.error(message);
+		} else {
+			try {
+				await this._authenticationService.getCopilotToken();
+				key = welcomeViewContextKeys.Activated;
+			} catch (e: any) {
+				error = e;
+				const reason = e.message || e;
+				const data = TelemetryData.createAndMarkAsIssued({ reason });
+				this._telemetryService.sendGHTelemetryErrorEvent('activationFailed', data.properties, data.measurements);
+				const message =
+					reason === 'GitHubLoginFailed'
+						? SESSION_LOGIN_MESSAGE
+						: `Aster AI could not connect to server. Extension activation failed: "${reason}"`;
+				this._logService.error(message);
+			}
 		}
 
 		if (error instanceof NotSignedUpError) {
@@ -216,6 +231,11 @@ export class ContextKeysContribution extends Disposable {
 		} catch (e) {
 			commands.executeCommand('setContext', clientByokEnabledContextKey, undefined);
 		}
+	}
+
+	private async _updateAsterByokContext() {
+		commands.executeCommand('setContext', asterByokProvidersAvailableContextKey, true);
+		commands.executeCommand('setContext', asterByokConfiguredContextKey, await hasAsterBYOKChatModel());
 	}
 
 	private _updateShowLogViewContext() {
