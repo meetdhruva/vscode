@@ -10,7 +10,7 @@ This checklist tracks release-facing productization items that cannot be validat
   Keep webview placeholder and fallback values centralized in the two intentional places: `product.json` for the product asset template and `src/vs/base/common/asterWebviewDefaults.ts` for runtime fallback/CSP constants. The workbench webview host, browser fallback URL, and server CSP should derive from those defaults instead of introducing new literal hosts. If another runtime surface needs the webview host, add it through the central defaults and extend `scripts/aster/check-release-readiness.mjs` to scan that surface.
 
 - Decide the bundled Microsoft-authored extension policy.
-  `product.json` still bundles `ms-vscode.js-debug-companion`, `ms-vscode.js-debug`, and `ms-vscode.vscode-js-profile-table` with Microsoft publisher metadata. Either get an explicit legal/product approval to ship them unchanged, replace them with approved alternatives, or remove the metadata/bundle entries. The compliance check should encode the chosen policy instead of broadly banning all Microsoft copyright or dependency references.
+  `product.json` still bundles `ms-vscode.js-debug-companion`, `ms-vscode.js-debug`, and `ms-vscode.vscode-js-profile-table` with Microsoft publisher metadata. Either get an explicit legal/product approval to ship them unchanged, replace them with approved alternatives, or remove the metadata/bundle entries. The release-readiness check should keep failing on these product metadata entries until that decision is made; any approval must be pinned to the exact extension name, version, SHA-256, and repository URL so content changes require a fresh review. Normal compliance checks should not broadly ban Microsoft copyright headers, dependency names, or copied upstream implementation details.
 
 - Replace Microsoft-owned signing and release credentials.
   The Azure release pipeline still references Microsoft ESRP, Azure subscriptions, Key Vaults, publisher names, release owners, and VS Code release metadata. Aster needs its own Windows code-signing certificate, Apple Developer Team ID/certificates/profiles/notarization credentials, Linux package signing keys, publishing storage, release approvers, and service connections before signed installers can be produced.
@@ -25,7 +25,7 @@ This checklist tracks release-facing productization items that cannot be validat
 
 - `npm run aster:check-runtime-assets` should stay fast and focused on runtime asset endpoints.
 - `npm run aster:check-compliance` should cover release-facing branding, product metadata, gallery configuration, hosted service endpoints, and known user-visible prompt surfaces.
-- `npm run aster:check-release-readiness` should fail while placeholder webview hosts remain. Extend it as signing, publishing, and artifact-hosting inputs move into Aster-owned configuration.
+- `npm run aster:check-release-readiness` should fail while placeholder webview hosts remain or bundled Microsoft-authored extension policy is unresolved. Extend it as signing, publishing, and artifact-hosting inputs move into Aster-owned configuration.
 - Run the Aster checks in CI before compile-heavy jobs so productization regressions fail quickly.
 
 ## Pitfalls
