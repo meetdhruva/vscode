@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Schemas } from '../../../../base/common/network.js';
+import { defaultAsterWebviewContentExternalBaseUrlTemplate } from '../../../../base/common/asterWebviewDefaults.js';
 import { joinPath } from '../../../../base/common/resources.js';
 import { URI } from '../../../../base/common/uri.js';
 import { ExtensionKind, IEnvironmentService, IExtensionHostDebugParams } from '../../../../platform/environment/common/environment.js';
@@ -225,7 +226,7 @@ export class BrowserWorkbenchEnvironmentService implements IBrowserWorkbenchEnvi
 	get webviewExternalEndpoint(): string {
 		const endpoint = this.options.webviewEndpoint
 			|| this.productService.webviewContentExternalBaseUrlTemplate
-			|| 'https://{{uuid}}.aster-webview.invalid/{{quality}}/{{commit}}/out/vs/workbench/contrib/webview/browser/pre/';
+			|| defaultAsterWebviewContentExternalBaseUrlTemplate;
 
 		const webviewExternalEndpointCommit = this.payload?.get('webviewExternalEndpointCommit');
 		return endpoint
