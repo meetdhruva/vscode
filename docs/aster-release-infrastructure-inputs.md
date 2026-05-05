@@ -2,6 +2,8 @@
 
 This document lists the external inputs required before Aster can produce public signed builds. It is not a substitute for credentials or service ownership; it exists so the release pipeline cannot silently inherit Microsoft infrastructure.
 
+Release readiness reads `docs/aster-release-infrastructure.json` and fails until the manifest is updated with real owner/date, Aster-owned infrastructure inputs, and evidence.
+
 ## Required Ownership
 
 - Windows code-signing certificate and timestamping policy owned by Aster.
@@ -31,6 +33,15 @@ The check is expected to fail until these references are replaced with Aster-own
 The inherited Azure product pipeline defaults release publishing off for Aster. `build/azure-pipelines/product-build.yml` requires both `VSCODE_PUBLISH: true` and `ASTER_RELEASE_INFRA_CONFIRMED: true` before the publish stage can be selected. `build/azure-pipelines/product-publish.yml` and `build/azure-pipelines/product-release.yml` also fail early when invoked directly without `ASTER_RELEASE_INFRA_CONFIRMED: true`.
 
 This gate is a safety interlock only. Do not set it to true until the ownership inputs above are real, tested, and documented.
+
+## Manifest Rules
+
+- `status` must stay `pending` until all `ownedInputs` entries are true and every corresponding `evidence` entry has a non-placeholder reference.
+- `releaseInfraConfirmedAllowed` must stay false until `status` is `configured`.
+- `decisionOwner` and `configuredOn` must refer to the real release infrastructure decision.
+- `dryRunRelease` evidence must include a signed or otherwise production-equivalent dry run that used Aster-owned infrastructure.
+- `artifactScanResults` evidence must include a release artifact scan over unpacked desktop, server, web, and extension artifacts.
+- Do not set `ASTER_RELEASE_INFRA_CONFIRMED` to true unless this manifest is `configured` and `npm run aster:check-release-readiness` passes.
 
 ## Replacement Pattern
 

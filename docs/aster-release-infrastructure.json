@@ -1,0 +1,36 @@
+{
+	"status": "pending",
+	"releaseInfraConfirmedAllowed": false,
+	"decisionOwner": "pending release infrastructure owner",
+	"configuredOn": null,
+	"ownedInputs": {
+		"windowsSigning": false,
+		"appleSigning": false,
+		"linuxPackageSigning": false,
+		"releaseStorage": false,
+		"updateMetadata": false,
+		"serviceConnections": false,
+		"releaseApprovers": false,
+		"distroSource": false,
+		"publisherMetadata": false,
+		"incidentContacts": false
+	},
+	"evidence": {
+		"windowsSigning": [],
+		"appleSigning": [],
+		"linuxPackageSigning": [],
+		"releaseStorage": [],
+		"updateMetadata": [],
+		"serviceConnections": [],
+		"releaseApprovers": [],
+		"distroSource": [],
+		"publisherMetadata": [],
+		"incidentContacts": [],
+		"dryRunRelease": [],
+		"artifactScanResults": []
+	},
+	"notes": [
+		"Do not set status to configured until inherited Microsoft release/signing infrastructure is replaced with Aster-owned systems and every owned input has evidence.",
+		"Do not set ASTER_RELEASE_INFRA_CONFIRMED to true unless this manifest is configured and the release-readiness check passes."
+	]
+}
