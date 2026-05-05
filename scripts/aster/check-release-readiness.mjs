@@ -11,8 +11,23 @@ const failures = [];
 
 const product = readJson('product.json');
 
+const approvedMicrosoftAuthoredBuiltInExtensions = [
+	// Add entries only after explicit Aster legal/product approval.
+	// {
+	// 	name: 'ms-vscode.js-debug',
+	// 	version: '1.117.0',
+	// 	sha256: '...',
+	// 	repo: 'https://github.com/microsoft/vscode-js-debug',
+	// 	decision: 'ship',
+	// 	reason: 'Required JavaScript debugging extension; license and branding reviewed for Aster release.',
+	// 	owner: 'release/legal/product',
+	// 	reviewedOn: 'YYYY-MM-DD',
+	// },
+];
+
 checkWebviewAssetHost();
 checkWebviewRuntimeFallbacks();
+checkBundledExtensionPolicy();
 
 if (failures.length) {
 	console.error('Aster release-readiness check failed:');
@@ -96,4 +111,44 @@ function checkWebviewRuntimeFallbacks() {
 			fail(`${file}: contains placeholder ${label}`);
 		}
 	}
+}
+
+function checkBundledExtensionPolicy() {
+	const bundledExtensions = Array.isArray(product.builtInExtensions) ? product.builtInExtensions : [];
+	const pendingPolicyExtensions = bundledExtensions.filter(extension => {
+		if (!isMicrosoftAuthoredBuiltInExtension(extension)) {
+			return false;
+		}
+		return !approvedMicrosoftAuthoredBuiltInExtensions.some(approval => isMatchingBuiltInExtensionApproval(extension, approval));
+	});
+
+	if (pendingPolicyExtensions.length) {
+		fail(`product.builtInExtensions: Microsoft-authored bundled extension policy is unresolved for ${pendingPolicyExtensions.map(extension => extension.name).join(', ')}`);
+	}
+
+	for (const approval of approvedMicrosoftAuthoredBuiltInExtensions) {
+		if (!bundledExtensions.some(extension => isMatchingBuiltInExtensionApproval(extension, approval))) {
+			fail(`product.builtInExtensions: stale Microsoft-authored bundled extension approval for ${approval.name}@${approval.version}:${approval.sha256}`);
+		}
+	}
+}
+
+function isMicrosoftAuthoredBuiltInExtension(extension) {
+	const name = typeof extension.name === 'string' ? extension.name : '';
+	const repo = typeof extension.repo === 'string' ? extension.repo : '';
+	const publisherName = typeof extension.metadata?.publisherId?.publisherName === 'string' ? extension.metadata.publisherId.publisherName : '';
+	const publisherDisplayName = typeof extension.metadata?.publisherDisplayName === 'string' ? extension.metadata.publisherDisplayName : '';
+	const publisherIdDisplayName = typeof extension.metadata?.publisherId?.displayName === 'string' ? extension.metadata.publisherId.displayName : '';
+	return name.startsWith('ms-vscode.')
+		|| /github\.com\/microsoft\//i.test(repo)
+		|| /^ms-vscode$/i.test(publisherName)
+		|| /^Microsoft$/i.test(publisherDisplayName)
+		|| /^Microsoft$/i.test(publisherIdDisplayName);
+}
+
+function isMatchingBuiltInExtensionApproval(extension, approval) {
+	return extension.name === approval.name
+		&& extension.version === approval.version
+		&& extension.sha256 === approval.sha256
+		&& extension.repo === approval.repo;
 }
