@@ -76,6 +76,11 @@ describe('Configurations', () => {
 		const otherPublicKeys = (Object.values(ConfigKey).filter(key => key !== ConfigKey.TeamInternal && key !== ConfigKey.Shared && key !== ConfigKey.Advanced && key !== ConfigKey.Deprecated) as Config<any>[]).map(setting => setting.fullyQualifiedId);
 		const registered = [...otherPublicKeys, ...advancedPublicKeys];
 		const unregistered = [...internalKeys, ...sharedKeys];
+		const intentionallyUnregisteredAsterAliases = [
+			'aster.ai.inlineCompletions.enabled',
+			'aster.ai.inlineCompletions.vendor',
+			'aster.ai.inlineCompletions.modelId',
+		];
 
 		// Validate unregistered settings are not in package.json
 		unregistered.forEach(key => {
@@ -104,6 +109,9 @@ describe('Configurations', () => {
 
 		// Validate settings in package.json are in code
 		configurationsInPackageJson.forEach(key => {
+			if (intentionallyUnregisteredAsterAliases.includes(key)) {
+				return;
+			}
 			expect(registered, 'Setting in package.json is not defined in code').toContain(key);
 		});
 	});

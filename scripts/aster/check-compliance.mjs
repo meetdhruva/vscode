@@ -22,6 +22,7 @@ checkProductIdentity();
 checkDefaultChatAgent();
 checkExtensionGallery();
 checkCopilotManifest();
+checkNamespacePolicy();
 checkBrandingSurfaces();
 checkPromptBrandingSurfaces();
 checkDisallowedEndpoints();
@@ -63,6 +64,12 @@ function assertEmptyArray(label, actual) {
 function assertAbsent(label, object, field) {
 	if (Object.hasOwn(object, field)) {
 		fail(`${label}.${field}: must be absent from distributable metadata`);
+	}
+}
+
+function assertPresent(label, object, field) {
+	if (!Object.hasOwn(object, field)) {
+		fail(`${label}.${field}: must be present`);
 	}
 }
 
@@ -186,6 +193,44 @@ function checkCopilotManifest() {
 	for (const field of ['internalAIKey', 'internalLargeStorageAriaKey', 'ariaKey']) {
 		assertAbsent('extensions/copilot/package.json', copilotPackage, field);
 	}
+}
+
+function checkNamespacePolicy() {
+	const properties = getConfigurationProperties();
+	if (!properties || typeof properties !== 'object') {
+		fail('extensions/copilot/package.json.contributes.configuration.properties: missing configuration properties');
+		return;
+	}
+
+	for (const setting of [
+		'aster.ai.inlineCompletions.enabled',
+		'aster.ai.inlineCompletions.vendor',
+		'aster.ai.inlineCompletions.modelId',
+		'github.copilot.aster.inlineCompletions.enabled',
+		'github.copilot.aster.inlineCompletions.vendor',
+		'github.copilot.aster.inlineCompletions.modelId',
+	]) {
+		assertPresent('extensions/copilot/package.json.contributes.configuration.properties', properties, setting);
+	}
+
+	const namespacePolicy = readText('docs/aster-namespace-policy.md');
+	for (const requiredText of [
+		'aster.ai.inlineCompletions.*',
+		'github.copilot.aster.inlineCompletions.*',
+		'compatibility fallback',
+	]) {
+		if (!namespacePolicy.includes(requiredText)) {
+			fail(`docs/aster-namespace-policy.md: missing namespace policy text ${JSON.stringify(requiredText)}`);
+		}
+	}
+}
+
+function getConfigurationProperties() {
+	const configuration = copilotPackage.contributes?.configuration;
+	if (Array.isArray(configuration)) {
+		return Object.assign({}, ...configuration.map(section => section.properties ?? {}));
+	}
+	return configuration?.properties;
 }
 
 function checkBrandingSurfaces() {

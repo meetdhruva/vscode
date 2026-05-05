@@ -2250,7 +2250,7 @@
 			},
 			{
 				"command": "github.copilot.cli.openInCopilotCLI",
-				"title": "%github.copilot.command.cli.openInAster AICLI%",
+				"title": "%github.copilot.command.cli.openInCopilotCLI%",
 				"icon": "$(terminal)",
 				"category": "Aster Agent CLI"
 			},
@@ -2726,7 +2726,7 @@
 			},
 			{
 				"command": "github.copilot.cloud.sessions.openInBrowser",
-				"title": "%github.copilot.command.openAster AIAgentSessionsInBrowser%",
+				"title": "%github.copilot.command.openCopilotAgentSessionsInBrowser%",
 				"icon": "$(link-external)"
 			},
 			{
@@ -2776,27 +2776,27 @@
 			},
 			{
 				"command": "github.copilot.chat.applyCopilotCLIAgentSessionChanges",
-				"title": "%github.copilot.command.applyAster AICLIAgentSessionChanges%",
+				"title": "%github.copilot.command.applyCopilotCLIAgentSessionChanges%",
 				"enablement": "!chatSessionRequestInProgress",
 				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.chat.applyCopilotCLIAgentSessionChanges.apply",
-				"title": "%github.copilot.chat.applyAster AICLIAgentSessionChanges.apply%",
+				"title": "%github.copilot.chat.applyCopilotCLIAgentSessionChanges.apply%",
 				"enablement": "!chatSessionRequestInProgress",
 				"icon": "$(git-stash-pop)",
 				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.chat.mergeCopilotCLIAgentSessionChanges.merge",
-				"title": "%github.copilot.chat.mergeAster AICLIAgentSessionChanges.merge%",
+				"title": "%github.copilot.chat.mergeCopilotCLIAgentSessionChanges.merge%",
 				"enablement": "!chatSessionRequestInProgress",
 				"icon": "$(git-merge)",
 				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.chat.mergeCopilotCLIAgentSessionChanges.mergeAndSync",
-				"title": "%github.copilot.chat.mergeAster AICLIAgentSessionChanges.mergeAndSync%",
+				"title": "%github.copilot.chat.mergeCopilotCLIAgentSessionChanges.mergeAndSync%",
 				"enablement": "!chatSessionRequestInProgress",
 				"icon": "$(sync)",
 				"category": "Aster AI"
@@ -2831,21 +2831,21 @@
 			},
 			{
 				"command": "github.copilot.chat.createPullRequestCopilotCLIAgentSession.createPR",
-				"title": "%github.copilot.chat.createPullRequestAster AICLIAgentSession.createPR%",
+				"title": "%github.copilot.chat.createPullRequestCopilotCLIAgentSession.createPR%",
 				"enablement": "!chatSessionRequestInProgress",
 				"icon": "$(git-pull-request-create)",
 				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.chat.createPullRequestCopilotCLIAgentSession.updatePR",
-				"title": "%github.copilot.chat.createPullRequestAster AICLIAgentSession.updatePR%",
+				"title": "%github.copilot.chat.createPullRequestCopilotCLIAgentSession.updatePR%",
 				"enablement": "!chatSessionRequestInProgress",
 				"icon": "$(sync)",
 				"category": "Aster AI"
 			},
 			{
 				"command": "github.copilot.chat.createDraftPullRequestCopilotCLIAgentSession.createDraftPR",
-				"title": "%github.copilot.chat.createDraftPullRequestAster AICLIAgentSession.createDraftPR%",
+				"title": "%github.copilot.chat.createDraftPullRequestCopilotCLIAgentSession.createDraftPR%",
 				"enablement": "!chatSessionRequestInProgress",
 				"icon": "$(git-pull-request-draft)",
 				"category": "Aster AI"
@@ -3157,6 +3157,32 @@
 						"type": "string",
 						"default": "",
 						"markdownDescription": "Optional BYOK model ID for Aster inline completions. Leave empty to use the first available model from the configured vendor."
+					},
+					"aster.ai.inlineCompletions.enabled": {
+						"type": "boolean",
+						"default": false,
+						"markdownDescription": "Enable Aster inline completions backed by your configured BYOK language model provider. This Aster namespace setting takes precedence over the compatibility setting `github.copilot.aster.inlineCompletions.enabled`."
+					},
+					"aster.ai.inlineCompletions.vendor": {
+						"type": "string",
+						"default": "",
+						"enum": [
+							"",
+							"customoai",
+							"openai",
+							"openrouter",
+							"ollama",
+							"anthropic",
+							"gemini",
+							"xai",
+							"azure"
+						],
+						"markdownDescription": "BYOK language model vendor to use for Aster inline completions. Leave empty to use the first available non-Copilot BYOK model. This Aster namespace setting takes precedence over `github.copilot.aster.inlineCompletions.vendor`."
+					},
+					"aster.ai.inlineCompletions.modelId": {
+						"type": "string",
+						"default": "",
+						"markdownDescription": "Optional BYOK model ID for Aster inline completions. Leave empty to use the first available model from the configured vendor. This Aster namespace setting takes precedence over `github.copilot.aster.inlineCompletions.modelId`."
 					},
 					"github.copilot.chat.claudeAgent.enabled": {
 						"type": "boolean",

@@ -29,6 +29,10 @@ export class DefaultsOnlyConfigurationService extends AbstractConfigurationServi
 		return undefined;
 	}
 
+	override inspectNonExtensionConfig<T>(configKey: string): InspectConfigResult<T> | undefined {
+		return undefined;
+	}
+
 	override getExperimentBasedConfig<T extends ExperimentBasedConfigType>(key: ExperimentBasedConfig<T>, experimentationService: IExperimentationService, scope?: ConfigurationScope): T {
 		if (key.experimentName) {
 			const expValue = experimentationService.getTreatmentVariable<Exclude<T, undefined>>(key.experimentName);
