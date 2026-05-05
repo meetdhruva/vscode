@@ -64,7 +64,8 @@ jobs:
             xvfb \
             libgtk-3-0 \
             libxkbfile-dev \
-            libgbm1
+            libgbm1 \
+            unzip
 
       - name: Install build dependencies
         working-directory: build
@@ -114,6 +115,14 @@ jobs:
           set -euo pipefail
           npm run gulp core-ci
           npm --prefix extensions/copilot run compile
+          rm -rf .build/extensions/copilot .build/aster-copilot-vsix
+          pushd extensions/copilot
+          npm exec -- vsce package --out ../../.build/aster-copilot.vsix
+          popd
+          unzip -q .build/aster-copilot.vsix 'extension/*' -d .build/aster-copilot-vsix
+          mkdir -p .build/extensions/copilot
+          shopt -s dotglob
+          mv .build/aster-copilot-vsix/extension/* .build/extensions/copilot/
           npm run copy-policy-dto --prefix build
           node build/lib/policies/policyGenerator.ts build/lib/policies/policyData.jsonc linux
           npm run gulp "vscode-linux-${VSCODE_ARCH}-min-ci"
