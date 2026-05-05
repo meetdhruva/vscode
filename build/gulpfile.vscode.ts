@@ -596,8 +596,12 @@ function patchWin32DependenciesTask(destinationFolderName: string) {
 
 		const patchPromises = deps.map<Promise<unknown>>(async dep => {
 			const basename = path.basename(dep);
+			const fullPath = path.join(cwd, dep);
+			if (!await isWindowsPEBinary(fullPath)) {
+				return;
+			}
 
-			await rcedit(path.join(cwd, dep), {
+			await rcedit(fullPath, {
 				'file-version': baseVersion,
 				'version-string': {
 					'CompanyName': 'Microsoft Corporation',
@@ -614,6 +618,17 @@ function patchWin32DependenciesTask(destinationFolderName: string) {
 
 		await Promise.all(patchPromises);
 	};
+}
+
+async function isWindowsPEBinary(filePath: string): Promise<boolean> {
+	const file = await fs.promises.open(filePath, 'r');
+	try {
+		const buffer = Buffer.alloc(2);
+		const { bytesRead } = await file.read(buffer, 0, buffer.length, 0);
+		return bytesRead === 2 && buffer[0] === 0x4d && buffer[1] === 0x5a;
+	} finally {
+		await file.close();
+	}
 }
 
 function prepareCopilotRipgrepShimTask(platform: string, arch: string, destinationFolderName: string) {
