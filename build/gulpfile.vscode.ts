@@ -31,7 +31,7 @@ import minimist from 'minimist';
 import { compileBuildWithoutManglingTask, compileBuildWithManglingTask } from './gulpfile.compile.ts';
 import { compileNonNativeExtensionsBuildTask, compileNativeExtensionsBuildTask, compileAllExtensionsBuildTask, compileExtensionMediaBuildTask, cleanExtensionsBuildTask, compileCopilotExtensionBuildTask } from './gulpfile.extensions.ts';
 import { copyCodiconsTask } from './lib/compilation.ts';
-import { getCopilotExcludeFilter, prepareBuiltInCopilotRipgrepShim } from './lib/copilot.ts';
+import { getBuiltInCopilotExtensionExcludeFilter, getCopilotExcludeFilter, prepareBuiltInCopilotRipgrepShim } from './lib/copilot.ts';
 import type { EmbeddedProductInfo } from './lib/embeddedType.ts';
 import { useEsbuildTranspile } from './buildConfig.ts';
 import { promisify } from 'util';
@@ -271,7 +271,7 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 			return !set.has(platform);
 		}).map(ext => `!.build/extensions/${ext.name}/**`);
 
-		const extensions = gulp.src(['.build/extensions/**', ...platformSpecificBuiltInExtensionsExclusions], { base: '.build', dot: true });
+		const extensions = gulp.src(['.build/extensions/**', ...platformSpecificBuiltInExtensionsExclusions, ...getBuiltInCopilotExtensionExcludeFilter(platform, arch)], { base: '.build', dot: true });
 
 		const sourceFilterPattern = stripSourceMapsInPackagingTasks
 			? ['**', '!**/*.{js,css}.map']

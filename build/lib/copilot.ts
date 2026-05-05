@@ -55,12 +55,22 @@ export function getCopilotExcludeFilter(platform: string, arch: string): string[
 	const targetPlatformArch = `${nodePlatform}-${nodeArch}`;
 	const nonTargetPlatforms = copilotPlatforms.filter(p => p !== targetPlatformArch);
 
-	// Strip wrong-architecture @github/copilot-{platform} packages.
-	// All copilot prebuilds are stripped by .moduleignore; the copilot CLI SDK
-	// resolves `node-pty` from VS Code's own node_modules via `hostRequire`.
-	const excludes = nonTargetPlatforms.map(p => `!**/node_modules/@github/copilot-${p}/**`);
+	// Strip wrong-architecture @github/copilot-{platform} packages and SDK prebuilds.
+	// The copilot CLI SDK resolves `node-pty` from VS Code's own node_modules via
+	// `hostRequire`.
+	const excludes = [
+		...nonTargetPlatforms.map(p => `!**/node_modules/@github/copilot-${p}/**`),
+		...nonTargetPlatforms.map(p => `!**/node_modules/@github/copilot/sdk/prebuilds/${p}/**`),
+		...nonTargetPlatforms.map(p => `!**/node_modules/@github/copilot/sdk/ripgrep/bin/${p}/**`),
+	];
 
 	return ['**', ...excludes];
+}
+
+export function getBuiltInCopilotExtensionExcludeFilter(platform: string, arch: string): string[] {
+	return getCopilotExcludeFilter(platform, arch)
+		.filter(pattern => pattern.startsWith('!'))
+		.map(pattern => `!.build/extensions/${pattern.slice(1)}`);
 }
 
 /**
