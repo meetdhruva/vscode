@@ -1,0 +1,21 @@
+{
+	"status": "pending",
+	"host": null,
+	"approvedPublicDomain": null,
+	"template": null,
+	"assetPath": "/{{quality}}/{{commit}}/out/vs/workbench/contrib/webview/browser/pre/",
+	"decisionOwner": "pending infrastructure/product review",
+	"configuredOn": null,
+	"evidence": {
+		"dnsWildcard": [],
+		"tlsWildcard": [],
+		"assetDeployment": [],
+		"cspCoverage": [],
+		"probeResults": [],
+		"artifactScanResults": []
+	},
+	"notes": [
+		"Do not set status to configured until host is an Aster-owned public DNS suffix, wildcard DNS/TLS is live, release assets are deployed, the probe command passes, and packaged artifacts have been scanned.",
+		"The host must match product.webviewContentExternalBaseUrlTemplate and must be equal to or under an approvedPublicDomains entry in docs/aster-brand-clearance.json."
+	]
+}

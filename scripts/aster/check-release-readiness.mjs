@@ -12,6 +12,8 @@ const failures = [];
 
 const product = readJson('product.json');
 const brandClearance = readJson('docs/aster-brand-clearance.json');
+const webviewHostReadiness = readJson('docs/aster-webview-host.json');
+const releaseInfrastructure = readJson('docs/aster-release-infrastructure.json');
 const asterAiExtension = readJson('extensions/copilot/package.json');
 const webviewPreloadPathTemplate = '/{{quality}}/{{commit}}/out/vs/workbench/contrib/webview/browser/pre/';
 const webviewContentExternalBaseUrlTemplatePattern = /^https:\/\/\{\{uuid\}\}\.([^/?#]+)\/\{\{quality\}\}\/\{\{commit\}\}\/out\/vs\/workbench\/contrib\/webview\/browser\/pre\/$/;
@@ -34,6 +36,7 @@ checkWebviewAssetHost();
 checkWebviewRuntimeFallbacks();
 checkBundledExtensionPolicy();
 checkReleaseInfrastructurePolicy();
+checkReleaseInfrastructureManifest();
 checkReleasePipelineSelectionPolicy();
 checkBrandClearancePolicy();
 
@@ -94,6 +97,7 @@ function checkWebviewAssetHost() {
 	} else {
 		checkWebviewBaseHost('product.webviewContentExternalBaseUrlTemplate host', baseHost, { externalForbidden: true });
 		checkWebviewHostDomainApproval('product.webviewContentExternalBaseUrlTemplate host', baseHost);
+		checkWebviewHostManifest(baseHost);
 	}
 
 	const forbiddenPatterns = [
@@ -229,6 +233,67 @@ function isHostUnderDomain(host, domain) {
 	return normalizedHost === normalizedDomain || normalizedHost.endsWith(`.${normalizedDomain}`);
 }
 
+function checkWebviewHostManifest(productBaseHost) {
+	const webviewHostPending = webviewHostReadiness.status !== 'configured';
+	const failWebviewInput = message => fail(message, { external: webviewHostPending });
+	const requiredEvidence = [
+		'dnsWildcard',
+		'tlsWildcard',
+		'assetDeployment',
+		'cspCoverage',
+		'probeResults',
+		'artifactScanResults',
+	];
+
+	if (webviewHostReadiness.status !== 'configured') {
+		failWebviewInput(`docs/aster-webview-host.json: status is ${JSON.stringify(webviewHostReadiness.status)}, expected "configured" before public release`);
+	}
+
+	if (typeof webviewHostReadiness.host !== 'string' || !webviewHostReadiness.host) {
+		failWebviewInput('docs/aster-webview-host.json: missing configured host');
+	} else {
+		checkWebviewBaseHost('docs/aster-webview-host.json: host', webviewHostReadiness.host, { externalForbidden: webviewHostPending });
+		if (webviewHostReadiness.host !== productBaseHost) {
+			fail(`docs/aster-webview-host.json: host must match product.webviewContentExternalBaseUrlTemplate host ${productBaseHost}`, { external: webviewHostPending });
+		}
+	}
+
+	if (webviewHostReadiness.assetPath !== webviewPreloadPathTemplate) {
+		fail(`docs/aster-webview-host.json: assetPath must be ${webviewPreloadPathTemplate}`);
+	}
+
+	if (typeof webviewHostReadiness.template !== 'string' || !webviewHostReadiness.template) {
+		failWebviewInput('docs/aster-webview-host.json: missing template');
+	} else {
+		if (webviewHostReadiness.template !== product.webviewContentExternalBaseUrlTemplate) {
+			fail('docs/aster-webview-host.json: template must match product.webviewContentExternalBaseUrlTemplate', { external: webviewHostPending });
+		}
+		if (typeof webviewHostReadiness.host === 'string' && webviewHostReadiness.template !== `https://{{uuid}}.${webviewHostReadiness.host}${webviewPreloadPathTemplate}`) {
+			fail('docs/aster-webview-host.json: template must derive from host and the required webview preload path', { external: webviewHostPending });
+		}
+	}
+
+	if (typeof webviewHostReadiness.approvedPublicDomain !== 'string' || !webviewHostReadiness.approvedPublicDomain) {
+		failWebviewInput('docs/aster-webview-host.json: missing approvedPublicDomain');
+	} else {
+		checkApprovedPublicDomain('docs/aster-webview-host.json: approvedPublicDomain', webviewHostReadiness.approvedPublicDomain);
+		if (typeof webviewHostReadiness.host === 'string' && !isHostUnderDomain(webviewHostReadiness.host, webviewHostReadiness.approvedPublicDomain)) {
+			fail('docs/aster-webview-host.json: host must be equal to or under approvedPublicDomain', { external: webviewHostPending });
+		}
+		if (!Array.isArray(brandClearance.approvedPublicDomains) || !brandClearance.approvedPublicDomains.includes(webviewHostReadiness.approvedPublicDomain)) {
+			fail('docs/aster-webview-host.json: approvedPublicDomain must be listed in docs/aster-brand-clearance.json approvedPublicDomains', { external: webviewHostPending || brandClearance.status !== 'cleared' });
+		}
+	}
+
+	checkOwnerAndDate('docs/aster-webview-host.json', webviewHostReadiness, failWebviewInput);
+
+	for (const key of requiredEvidence) {
+		if (!hasEvidence(webviewHostReadiness.evidence?.[key])) {
+			failWebviewInput(`docs/aster-webview-host.json: missing evidence.${key}`);
+		}
+	}
+}
+
 function countOccurrences(value, search) {
 	return value.split(search).length - 1;
 }
@@ -300,6 +365,50 @@ function checkReleaseInfrastructurePolicy() {
 		const matches = releaseInfraPatterns.filter(({ pattern }) => pattern.test(content)).map(({ label }) => label);
 		if (matches.length) {
 			failExternal(`${file}: contains inherited Microsoft release infrastructure (${matches.join(', ')})`);
+		}
+	}
+}
+
+function checkReleaseInfrastructureManifest() {
+	const releaseInfraPending = releaseInfrastructure.status !== 'configured';
+	const failReleaseInput = message => fail(message, { external: releaseInfraPending });
+	const requiredInputs = [
+		'windowsSigning',
+		'appleSigning',
+		'linuxPackageSigning',
+		'releaseStorage',
+		'updateMetadata',
+		'serviceConnections',
+		'releaseApprovers',
+		'distroSource',
+		'publisherMetadata',
+		'incidentContacts',
+	];
+	const requiredEvidence = [
+		...requiredInputs,
+		'dryRunRelease',
+		'artifactScanResults',
+	];
+
+	if (releaseInfrastructure.status !== 'configured') {
+		failReleaseInput(`docs/aster-release-infrastructure.json: status is ${JSON.stringify(releaseInfrastructure.status)}, expected "configured" before public release`);
+	}
+
+	if (releaseInfrastructure.releaseInfraConfirmedAllowed !== true) {
+		failReleaseInput('docs/aster-release-infrastructure.json: releaseInfraConfirmedAllowed must be true before ASTER_RELEASE_INFRA_CONFIRMED can be used');
+	}
+
+	checkOwnerAndDate('docs/aster-release-infrastructure.json', releaseInfrastructure, failReleaseInput);
+
+	for (const key of requiredInputs) {
+		if (releaseInfrastructure.ownedInputs?.[key] !== true) {
+			failReleaseInput(`docs/aster-release-infrastructure.json: ownedInputs.${key} must be true`);
+		}
+	}
+
+	for (const key of requiredEvidence) {
+		if (!hasEvidence(releaseInfrastructure.evidence?.[key])) {
+			failReleaseInput(`docs/aster-release-infrastructure.json: missing evidence.${key}`);
 		}
 	}
 }
@@ -467,8 +576,23 @@ function checkApprovedPublicDomain(label, domain) {
 }
 
 function hasApprovalEvidence(approval) {
-	const evidence = brandClearance.approvalEvidence?.[approval];
+	return hasEvidence(brandClearance.approvalEvidence?.[approval]);
+}
+
+function hasEvidence(evidence) {
 	return Array.isArray(evidence) && evidence.some(item => typeof item === 'string' && item.trim() && !/pending|todo|tbd/i.test(item));
+}
+
+function checkOwnerAndDate(file, manifest, failInput) {
+	if (typeof manifest.decisionOwner !== 'string' || !manifest.decisionOwner || /pending|todo|tbd/i.test(manifest.decisionOwner)) {
+		failInput(`${file}: missing non-placeholder decisionOwner`);
+	}
+
+	if (!/^\d{4}-\d{2}-\d{2}$/.test(manifest.configuredOn ?? '')) {
+		failInput(`${file}: missing configuredOn date in YYYY-MM-DD format`);
+	} else if (!isValidIsoDate(manifest.configuredOn)) {
+		fail(`${file}: configuredOn must be a valid calendar date`);
+	}
 }
 
 function isValidIsoDate(value) {
