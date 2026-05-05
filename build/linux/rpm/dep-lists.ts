@@ -63,6 +63,7 @@ export const referenceGeneratedDepsByArch = {
 		'libc.so.6(GLIBC_2.8)(64bit)',
 		'libc.so.6(GLIBC_2.9)(64bit)',
 		'libcairo.so.2()(64bit)',
+		'libcups.so.2()(64bit)',
 		'libcurl.so.4()(64bit)',
 		'libdbus-1.so.3()(64bit)',
 		'libdbus-1.so.3(LIBDBUS_1_3)(64bit)',
