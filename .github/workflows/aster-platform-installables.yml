@@ -273,7 +273,18 @@ jobs:
         shell: pwsh
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: npm run gulp "vscode-win32-${{ env.VSCODE_ARCH }}-min"
+        run: |
+          $ErrorActionPreference = "Stop"
+          npm run gulp core-ci
+          npm --prefix extensions/copilot run compile
+          Remove-Item -Recurse -Force .build/extensions/copilot, .build/aster-copilot-vsix -ErrorAction SilentlyContinue
+          Push-Location extensions/copilot
+          npm exec -- vsce package --out ../../.build/aster-copilot.vsix
+          Pop-Location
+          7z.exe x .build/aster-copilot.vsix -o.build/aster-copilot-vsix -y
+          New-Item -ItemType Directory -Force .build/extensions/copilot | Out-Null
+          Get-ChildItem -Force .build/aster-copilot-vsix/extension | Move-Item -Destination .build/extensions/copilot
+          npm run gulp "vscode-win32-${{ env.VSCODE_ARCH }}-min-ci"
 
       - name: Scan release artifacts
         shell: pwsh
@@ -369,7 +380,19 @@ jobs:
       - name: Build client
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: npm run gulp "vscode-darwin-${VSCODE_ARCH}-min"
+        run: |
+          set -euo pipefail
+          npm run gulp core-ci
+          npm --prefix extensions/copilot run compile
+          rm -rf .build/extensions/copilot .build/aster-copilot-vsix
+          pushd extensions/copilot
+          npm exec -- vsce package --out ../../.build/aster-copilot.vsix
+          popd
+          unzip -q .build/aster-copilot.vsix 'extension/*' -d .build/aster-copilot-vsix
+          mkdir -p .build/extensions/copilot
+          shopt -s dotglob
+          mv .build/aster-copilot-vsix/extension/* .build/extensions/copilot/
+          npm run gulp "vscode-darwin-${VSCODE_ARCH}-min-ci"
 
       - name: Scan release artifacts
         run: npm run aster:check-release-artifacts -- ../VSCode-darwin-arm64 --allow-external-blockers
