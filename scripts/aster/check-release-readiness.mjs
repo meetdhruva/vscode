@@ -422,6 +422,7 @@ function checkReleasePipelineSelectionPolicy() {
 	const publicReleaseScript = readText('scripts/aster/publish-github-release-assets.mjs');
 	const publicDownloadsWorkflow = readText('.github/workflows/aster-public-downloads.yml');
 	const linuxInstallablesWorkflow = readText('.github/workflows/aster-linux-installables.yml');
+	const platformInstallablesWorkflow = readText('.github/workflows/aster-platform-installables.yml');
 
 	if (!/- name: VSCODE_PUBLISH\s+displayName: "Publish release artifacts"\s+type: boolean\s+default: false/m.test(productBuild)) {
 		fail('build/azure-pipelines/product-build.yml: VSCODE_PUBLISH must default to false for Aster until release infrastructure is owned');
@@ -461,6 +462,18 @@ function checkReleasePipelineSelectionPolicy() {
 
 	if (!/aster:check-release-artifacts/.test(linuxInstallablesWorkflow) || !/vscode_client_linux_x64_installables/.test(linuxInstallablesWorkflow) || !/scripts\/aster\/publish-github-release-assets\.mjs/.test(linuxInstallablesWorkflow)) {
 		fail('.github/workflows/aster-linux-installables.yml: must scan, upload, and optionally publish Linux installables');
+	}
+
+	if (!/runs-on: ubuntu-24\.04/.test(platformInstallablesWorkflow) || !/runs-on: windows-2022/.test(platformInstallablesWorkflow) || !/runs-on: macos-15/.test(platformInstallablesWorkflow)) {
+		fail('.github/workflows/aster-platform-installables.yml: must build platform artifacts on GitHub-hosted Linux, Windows, and macOS runners');
+	}
+
+	if (!/actions\/download-artifact@v7/.test(platformInstallablesWorkflow) || !/merge-multiple: true/.test(platformInstallablesWorkflow) || !/Verify Latest Release Downloads/.test(platformInstallablesWorkflow)) {
+		fail('.github/workflows/aster-platform-installables.yml: must fan in platform artifacts and verify a GitHub latest release');
+	}
+
+	if (!/vscode_client_linux_x64_installables/.test(platformInstallablesWorkflow) || !/vscode_client_win32_x64_installables/.test(platformInstallablesWorkflow) || !/vscode_client_darwin_arm64_installables/.test(platformInstallablesWorkflow)) {
+		fail('.github/workflows/aster-platform-installables.yml: must upload Linux, Windows, and macOS installable artifacts');
 	}
 
 	const vscodeGulpfile = readText('build/gulpfile.vscode.ts');

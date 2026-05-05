@@ -43,6 +43,7 @@ This checklist tracks release-facing productization items that cannot be validat
 - `npm run aster:probe-webview-host -- --host <host> --quality <quality> --commit <commit> --uuid <test-uuid>` should pass against the release webview host before replacing the placeholder.
 - `npm run aster:check-release-artifacts -- <unpacked artifact paths...>` should run against unpacked desktop, server, web, and extension artifacts before publishing. Use `--include-source-maps` when source maps are shipped.
 - GitHub Actions publishing builds should run `npm run aster:check-release-artifacts -- <unpacked artifact paths...>` after desktop/server/web artifacts are assembled and before artifact publication.
+- Use `.github/workflows/aster-platform-installables.yml` for the combined GitHub Release path. It must complete Linux, Windows, and macOS jobs, publish a non-prerelease release, and verify that GitHub latest release downloads expose all three platforms.
 - `npm run aster:check-release-readiness` should fail while placeholder webview hosts remain, brand clearance is pending, unapproved Microsoft-authored built-in extensions are present, artifact-scan pipeline hooks are missing, or inherited Microsoft release/signing infrastructure remains wired into release pipeline files.
 - Run the Aster checks in CI before compile-heavy jobs so productization regressions fail quickly.
 

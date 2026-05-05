@@ -18,6 +18,8 @@ Aster uses GitHub-hosted Actions for this public download path. There is no Azur
 
 For a self-contained GitHub build, `.github/workflows/aster-linux-installables.yml` builds Linux x64 archive, deb, and rpm installables, scans the unpacked app with `npm run aster:check-release-artifacts -- --allow-external-blockers`, uploads a `vscode_client_linux_x64_installables` workflow artifact, and can publish the same files to a GitHub Release in one run.
 
+For a combined public release, `.github/workflows/aster-platform-installables.yml` builds Linux x64, Windows x64, and macOS arm64 artifacts on GitHub-hosted runners only, downloads those workflow artifacts into one publish job, and uploads them to a single GitHub Release. Its default manual-dispatch path publishes a non-prerelease release and then verifies that GitHub's `/releases/latest` endpoint exposes Linux, Windows, and macOS downloads.
+
 The publisher creates or reuses the GitHub Release, uploads releasable files, adds checksum sidecars, updates the release notes with direct download links, and uploads `aster-release-assets.json` for programmatic consumers:
 
 - Windows: `.exe`, `.msi`, `.zip`

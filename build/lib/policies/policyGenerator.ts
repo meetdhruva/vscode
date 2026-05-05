@@ -143,7 +143,12 @@ async function parsePolicies(policyDataFile: string): Promise<Policy[]> {
 	return policies;
 }
 
-async function getTranslations(): Promise<Translations> {
+async function getTranslations(options: { skipLocalization?: boolean } = {}): Promise<Translations> {
+	if (options.skipLocalization) {
+		console.warn('Skipping policy localization: --no-localization was specified.');
+		return [];
+	}
+
 	const extensionGalleryServiceUrl = product.extensionsGallery?.serviceUrl;
 
 	if (!extensionGalleryServiceUrl) {
@@ -216,24 +221,25 @@ async function linuxMain(policies: Policy[]) {
 async function main() {
 	const args = minimist(process.argv.slice(2));
 	if (args._.length !== 2) {
-		console.error(`Usage: node build/lib/policies <policy-data-file> <darwin|win32|linux>`);
+		console.error(`Usage: node build/lib/policies <policy-data-file> <darwin|win32|linux> [--no-localization]`);
 		process.exit(1);
 	}
 
 	const policyDataFile = args._[0];
 	const platform = args._[1];
+	const skipLocalization = args.localization === false || args['no-localization'] === true || args['skip-localization'] === true;
 	const policies = await parsePolicies(policyDataFile);
 
 	if (platform === 'darwin') {
-		const translations = await getTranslations();
+		const translations = await getTranslations({ skipLocalization });
 		await darwinMain(policies, translations);
 	} else if (platform === 'win32') {
-		const translations = await getTranslations();
+		const translations = await getTranslations({ skipLocalization });
 		await windowsMain(policies, translations);
 	} else if (platform === 'linux') {
 		await linuxMain(policies);
 	} else {
-		console.error(`Usage: node build/lib/policies <policy-data-file> <darwin|win32|linux>`);
+		console.error(`Usage: node build/lib/policies <policy-data-file> <darwin|win32|linux> [--no-localization]`);
 		process.exit(1);
 	}
 }

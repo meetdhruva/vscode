@@ -1,0 +1,469 @@
+name: Aster Platform Installables
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: "Publish a GitHub Release after all platform artifacts are built"
+        required: true
+        default: true
+        type: boolean
+      release_repository:
+        description: "Target GitHub release repository (owner/repo); defaults to this repository"
+        required: false
+        type: string
+      release_tag:
+        description: "Target GitHub release tag; defaults to v<package version>-<run number>"
+        required: false
+        type: string
+      release_name:
+        description: "Release display name"
+        required: false
+        type: string
+      prerelease:
+        description: "Mark the GitHub Release as a prerelease"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  actions: read
+  contents: write
+
+env:
+  VSCODE_QUALITY: stable
+  ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+  VSCODE_DISABLE_CDN_SOURCE_MAPS: 1
+
+jobs:
+  linux-x64:
+    name: Linux x64 Installables
+    runs-on: ubuntu-24.04
+    env:
+      NPM_ARCH: x64
+      VSCODE_ARCH: x64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          lfs: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install system dependencies
+        run: |
+          set -euo pipefail
+          ./build/azure-pipelines/linux/apt-retry.sh sudo apt-get update
+          ./build/azure-pipelines/linux/apt-retry.sh sudo apt-get install -y \
+            fakeroot \
+            build-essential \
+            libssl-dev \
+            libkrb5-dev \
+            pkg-config \
+            rpm \
+            xvfb \
+            libgtk-3-0 \
+            libxkbfile-dev \
+            libgbm1 \
+            unzip
+
+      - name: Setup Rust
+        run: |
+          set -euo pipefail
+          rustup default 1.88
+          rustup target add x86_64-unknown-linux-gnu
+          rustc --version
+          cargo --version
+
+      - name: Install build dependencies
+        working-directory: build
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for i in {1..5}; do
+            npm ci && break
+            if [ "$i" -eq 5 ]; then
+              echo "npm ci failed too many times" >&2
+              exit 1
+            fi
+            echo "npm ci failed on attempt $i; retrying"
+          done
+
+      - name: Install dependencies
+        env:
+          npm_config_arch: x64
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          source ./build/azure-pipelines/linux/setup-env.sh
+          for i in {1..5}; do
+            npm ci && break
+            if [ "$i" -eq 5 ]; then
+              echo "npm ci failed too many times" >&2
+              exit 1
+            fi
+            echo "npm ci failed on attempt $i; retrying"
+          done
+
+      - name: Download Electron
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: npm run electron -- x64
+
+      - name: Download built-in extensions
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: npm run download-builtin-extensions
+
+      - name: Build tunnel CLI
+        env:
+          CARGO_NET_GIT_FETCH_WITH_CLI: true
+          VSCODE_CLI_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          export VSCODE_SYSROOT_DIR="$PWD/.build/sysroots"
+          node -e 'import { getVSCodeSysroot } from "./build/linux/debian/install-sysroot.ts"; (async () => { await getVSCodeSysroot("amd64"); })()'
+          export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER="$VSCODE_SYSROOT_DIR/x86_64-linux-gnu/bin/x86_64-linux-gnu-gcc"
+          export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS="-C link-arg=--sysroot=$VSCODE_SYSROOT_DIR/x86_64-linux-gnu/x86_64-linux-gnu/sysroot -C link-arg=-L$VSCODE_SYSROOT_DIR/x86_64-linux-gnu/x86_64-linux-gnu/sysroot/usr/lib/x86_64-linux-gnu"
+          export CC_x86_64_unknown_linux_gnu="$VSCODE_SYSROOT_DIR/x86_64-linux-gnu/bin/x86_64-linux-gnu-gcc --sysroot=$VSCODE_SYSROOT_DIR/x86_64-linux-gnu/x86_64-linux-gnu/sysroot"
+          export PKG_CONFIG_LIBDIR_x86_64_unknown_linux_gnu="$VSCODE_SYSROOT_DIR/x86_64-linux-gnu/x86_64-linux-gnu/sysroot/usr/lib/x86_64-linux-gnu/pkgconfig:$VSCODE_SYSROOT_DIR/x86_64-linux-gnu/x86_64-linux-gnu/sysroot/usr/share/pkgconfig"
+          export PKG_CONFIG_SYSROOT_DIR_x86_64_unknown_linux_gnu="$VSCODE_SYSROOT_DIR/x86_64-linux-gnu/x86_64-linux-gnu/sysroot"
+          tmpdir="$(mktemp -d)"
+          npm pack @vscode/openssl-prebuilt --pack-destination "$tmpdir"
+          rm -rf cli/openssl
+          mkdir -p cli/openssl
+          tar -xzf "$tmpdir"/*.tgz -C cli/openssl
+          rm -rf "$tmpdir"
+          export OPENSSL_DIR="$PWD/cli/openssl/package/out/x64-linux"
+          cargo build --release --manifest-path cli/Cargo.toml --target x86_64-unknown-linux-gnu --bin code
+
+      - name: Compile and package client
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          npm run gulp core-ci
+          npm --prefix extensions/copilot run compile
+          rm -rf .build/extensions/copilot .build/aster-copilot-vsix
+          pushd extensions/copilot
+          npm exec -- vsce package --out ../../.build/aster-copilot.vsix
+          popd
+          unzip -q .build/aster-copilot.vsix 'extension/*' -d .build/aster-copilot-vsix
+          mkdir -p .build/extensions/copilot
+          shopt -s dotglob
+          mv .build/aster-copilot-vsix/extension/* .build/extensions/copilot/
+          npm run copy-policy-dto --prefix build
+          node build/lib/policies/policyGenerator.ts build/lib/policies/policyData.jsonc linux
+          npm run gulp "vscode-linux-${VSCODE_ARCH}-min-ci"
+          TUNNEL_APP_NAME="$(node -p "require('./product.json').tunnelApplicationName")"
+          install -m 755 "cli/target/x86_64-unknown-linux-gnu/release/code" "../VSCode-linux-${VSCODE_ARCH}/bin/${TUNNEL_APP_NAME}"
+
+      - name: Build Linux packages
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p "require('./package.json').version")"
+          mkdir -p .build/aster-installables
+
+          tar -czf ".build/aster-installables/aster-linux-x64-${VERSION}-${GITHUB_RUN_NUMBER}.tar.gz" -C .. VSCode-linux-x64
+
+          npm run gulp "vscode-linux-${VSCODE_ARCH}-prepare-deb"
+          npm run gulp "vscode-linux-${VSCODE_ARCH}-build-deb"
+          cp .build/linux/deb/*/deb/*.deb .build/aster-installables/
+
+          export VSCODE_SYSROOT_DIR="$PWD/.build/sysroots/glibc-2.28-gcc-10.5.0"
+          export STRIP="$VSCODE_SYSROOT_DIR/x86_64-linux-gnu/x86_64-linux-gnu/bin/strip"
+          npm run gulp "vscode-linux-${VSCODE_ARCH}-prepare-rpm"
+          npm run gulp "vscode-linux-${VSCODE_ARCH}-build-rpm"
+          cp .build/linux/rpm/*/*.rpm .build/aster-installables/
+
+      - name: Scan release artifacts
+        run: npm run aster:check-release-artifacts -- ../VSCode-linux-x64 --allow-external-blockers
+
+      - name: Upload installable artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: vscode_client_linux_x64_installables
+          path: .build/aster-installables/*
+          if-no-files-found: error
+          retention-days: 30
+
+  win32-x64:
+    name: Windows x64 Archive
+    runs-on: windows-2022
+    env:
+      NPM_ARCH: x64
+      VSCODE_ARCH: x64
+      npm_config_arch: x64
+      npm_config_foreground_scripts: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          lfs: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install build dependencies
+        working-directory: build
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          for ($i = 1; $i -le 5; $i++) {
+            try {
+              npm ci
+              break
+            } catch {
+              if ($i -eq 5) {
+                throw
+              }
+              Write-Host "npm ci failed on attempt $i; retrying"
+              Start-Sleep -Seconds 2
+            }
+          }
+
+      - name: Install dependencies
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          for ($i = 1; $i -le 5; $i++) {
+            try {
+              npm ci
+              break
+            } catch {
+              if ($i -eq 5) {
+                throw
+              }
+              Write-Host "npm ci failed on attempt $i; retrying"
+              Start-Sleep -Seconds 2
+            }
+          }
+
+      - name: Download Electron
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: npm run electron -- x64
+
+      - name: Download built-in extensions
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: npm run download-builtin-extensions
+
+      - name: Generate policy definitions
+        shell: pwsh
+        run: |
+          npm run copy-policy-dto --prefix build
+          node build/lib/policies/policyGenerator.ts build/lib/policies/policyData.jsonc win32 --no-localization
+
+      - name: Build client
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: npm run gulp "vscode-win32-${{ env.VSCODE_ARCH }}-min"
+
+      - name: Scan release artifacts
+        shell: pwsh
+        run: npm run aster:check-release-artifacts -- ../VSCode-win32-x64 --allow-external-blockers
+
+      - name: Package Windows archive
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $Version = node -p "require('./package.json').version"
+          New-Item -ItemType Directory -Force .build/aster-installables | Out-Null
+          Push-Location ..
+          7z.exe a "$env:GITHUB_WORKSPACE\.build\aster-installables\aster-win32-x64-$Version-$env:GITHUB_RUN_NUMBER.zip" VSCode-win32-x64
+          Pop-Location
+
+      - name: Upload installable artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: vscode_client_win32_x64_installables
+          path: .build/aster-installables/*
+          if-no-files-found: error
+          retention-days: 30
+
+  darwin-arm64:
+    name: macOS arm64 Archive
+    runs-on: macos-15
+    env:
+      NPM_ARCH: arm64
+      VSCODE_ARCH: arm64
+      npm_config_arch: arm64
+      GYP_DEFINES: "kerberos_use_rtld=false"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          lfs: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install build dependencies
+        working-directory: build
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for i in {1..5}; do
+            npm ci && break
+            if [ "$i" -eq 5 ]; then
+              echo "npm ci failed too many times" >&2
+              exit 1
+            fi
+            echo "npm ci failed on attempt $i; retrying"
+          done
+
+      - name: Install dependencies
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          c++ --version
+          xcode-select -print-path
+          python3 -m pip install --break-system-packages setuptools
+
+          for i in {1..5}; do
+            npm ci && break
+            if [ "$i" -eq 5 ]; then
+              echo "npm ci failed too many times" >&2
+              exit 1
+            fi
+            echo "npm ci failed on attempt $i; retrying"
+          done
+
+      - name: Download Electron
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: npm run electron -- arm64
+
+      - name: Download built-in extensions
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: npm run download-builtin-extensions
+
+      - name: Generate policy definitions
+        run: |
+          set -euo pipefail
+          npm run copy-policy-dto --prefix build
+          node build/lib/policies/policyGenerator.ts build/lib/policies/policyData.jsonc darwin --no-localization
+
+      - name: Build client
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: npm run gulp "vscode-darwin-${VSCODE_ARCH}-min"
+
+      - name: Scan release artifacts
+        run: npm run aster:check-release-artifacts -- ../VSCode-darwin-arm64 --allow-external-blockers
+
+      - name: Package macOS archive
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p "require('./package.json').version")"
+          mkdir -p .build/aster-installables
+          ditto -c -k --sequesterRsrc --keepParent "../VSCode-darwin-arm64" ".build/aster-installables/aster-darwin-arm64-${VERSION}-${GITHUB_RUN_NUMBER}.zip"
+
+      - name: Upload installable artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: vscode_client_darwin_arm64_installables
+          path: .build/aster-installables/*
+          if-no-files-found: error
+          retention-days: 30
+
+  publish-release:
+    name: Publish Combined GitHub Release
+    if: ${{ inputs.publish_release }}
+    needs:
+      - linux-x64
+      - win32-x64
+      - darwin-arm64
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Download installable artifacts
+        uses: actions/download-artifact@v7
+        with:
+          pattern: vscode_client_*_installables
+          path: .build/aster-release-assets
+          merge-multiple: true
+
+      - name: Publish GitHub release assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.ASTER_GITHUB_RELEASE_TOKEN || github.token }}
+          ASTER_GITHUB_RELEASE_REPOSITORY: ${{ inputs.release_repository || github.repository }}
+          ASTER_GITHUB_RELEASE_TAG: ${{ inputs.release_tag }}
+          ASTER_GITHUB_RELEASE_NAME: ${{ inputs.release_name }}
+        run: |
+          set -euo pipefail
+          args=(--assets-root .build/aster-release-assets)
+          if [ "${{ inputs.prerelease }}" = "true" ]; then
+            args+=(--prerelease)
+          else
+            args+=(--no-prerelease)
+          fi
+          node scripts/aster/publish-github-release-assets.mjs "${args[@]}"
+
+  verify-latest-release:
+    name: Verify Latest Release Downloads
+    if: ${{ inputs.publish_release && !inputs.prerelease }}
+    needs: publish-release
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ secrets.ASTER_GITHUB_RELEASE_TOKEN || github.token }}
+      RELEASE_REPOSITORY: ${{ inputs.release_repository || github.repository }}
+
+    steps:
+      - name: Verify GitHub latest release
+        run: |
+          set -euo pipefail
+          mkdir -p .build
+          gh api "repos/${RELEASE_REPOSITORY}/releases/latest" > .build/latest-release.json
+          node <<'NODE'
+          const fs = require('fs');
+          const release = JSON.parse(fs.readFileSync('.build/latest-release.json', 'utf8'));
+          if (release.draft || release.prerelease) {
+            throw new Error(`Latest release must be a non-draft, non-prerelease release: draft=${release.draft} prerelease=${release.prerelease}`);
+          }
+          const assetNames = release.assets.map(asset => asset.name);
+          const required = [
+            /aster-linux-x64-.*\.tar\.gz$/,
+            /aster_.*_amd64\.deb$/,
+            /aster-.*\.x86_64\.rpm$/,
+            /aster-win32-x64-.*\.zip$/,
+            /aster-darwin-arm64-.*\.zip$/,
+            /^aster-release-assets\.json$/,
+          ];
+          for (const pattern of required) {
+            if (!assetNames.some(name => pattern.test(name))) {
+              throw new Error(`Latest release ${release.tag_name} is missing asset matching ${pattern}`);
+            }
+          }
+          console.log(`Verified latest release ${release.tag_name} with ${assetNames.length} assets.`);
+          NODE
